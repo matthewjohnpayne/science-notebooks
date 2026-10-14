@@ -8,7 +8,7 @@ These notebooks complement, and do not duplicate, the [Minor Planet Center tutor
 
 | Notebook | Based on | Run time |
 |---|---|---|
-| [Resonance overlap: when do two close planets become chaotic?](notebooks/resonance_overlap/resonance_overlap.ipynb) | Deck, Payne & Holman (2013), ApJ 774, 129 | About 2.5 min on 12 cores; seconds with `QUICK = True` |
+| [Resonance overlap: when do two close planets become chaotic?](notebooks/resonance_overlap/resonance_overlap.ipynb) | Deck, Payne & Holman (2013), ApJ 774, 129 | Seconds from the cached results in `cache/`; about 2 h on 12 cores to recompute all ~470,000 integrations; a few minutes with `QUICK = True` |
 
 ## Running
 

@@ -1,0 +1,7 @@
+numpy>=1.24
+matplotlib>=3.7
+rebound>=4.0
+jupyterlab
+nbformat
+nbclient
+ipykernel

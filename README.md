@@ -2,13 +2,14 @@
 
 Jupyter notebooks by **Matthew Payne** that explore the dynamics and methods behind his research papers, with each result reproduced by direct computation.
 
-These notebooks complement, and do not duplicate, the [Minor Planet Center tutorials](https://docs.minorplanetcenter.net/tutorials/), which cover working with MPC data and services. Notebooks here are tied to research topics that are not specific to the MPC.
+These notebooks complement, and do not duplicate, the [Minor Planet Center tutorials](https://docs.minorplanetcenter.net/tutorials/), which cover working with MPC data and services. Notebooks here are tied to research papers rather than to MPC services.
 
 ## Notebooks
 
 | Notebook | Based on | Run time |
 |---|---|---|
 | [Resonance overlap: when do two close planets become chaotic?](notebooks/resonance_overlap/resonance_overlap.ipynb) | Deck, Payne & Holman (2013), ApJ 774, 129 | Seconds from the cached results in `cache/`; about 2 h on 12 cores to recompute all ~470,000 integrations; a few minutes with `QUICK = True` |
+| [HelioLinC: linking asteroid detections by guessing their distance](notebooks/heliolinc/heliolinc.ipynb) | Holman, Payne, Blankley, Janssen & Kuindersma (2018), AJ 156, 135 | About 3 minutes |
 
 ## Running
 
@@ -28,6 +29,8 @@ Notebooks are generated from a plain-text builder in `tools/`, so prose and code
 python tools/build_resonance_overlap.py                                   # write the .ipynb
 python tools/execute.py notebooks/resonance_overlap/resonance_overlap.ipynb   # run it and store outputs
 ```
+
+The HelioLinC notebook reads real orbits from `notebooks/heliolinc/data/orbits.csv.gz`, an extract of the MPC's MPCORB file. To regenerate it from a fresh MPCORB (about 90 MB, downloaded automatically), run `python tools/fetch_heliolinc_orbits.py`.
 
 ## License
 

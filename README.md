@@ -13,6 +13,7 @@ These notebooks complement, and do not duplicate, the [Minor Planet Center tutor
 | [Transit timing variations from inclined and retrograde companions](notebooks/ttv_inclined/ttv_inclined.ipynb) | Payne, Ford & Veras (2010), ApJL 712, L86 | Seconds from the cached results in `cache/`; about 50 minutes on 12 cores to recompute all ~100,000 integrations; a few minutes with `QUICK = True` |
 | [Interstellar objects in the LSST era: which will Rubin see?](notebooks/iso_lsst/iso_lsst.ipynb) | Hoover, Seligman & Payne (2022), PSJ 3, 71 | About 6 minutes on 12 cores (a million objects, plus five variants); about a minute with `QUICK = True` |
 | [Shift-and-stack on detection catalogues](notebooks/shift_and_stack/shift_and_stack.ipynb) | Stetzler et al. (2025), AJ 170, 352 | About 3 minutes |
+| [The Laplace resonance of GJ 876](notebooks/laplace_gj876/laplace_gj876.ipynb) | Nelson et al. (2016), MNRAS 455, 2484 | About a minute |
 
 ## Running
 

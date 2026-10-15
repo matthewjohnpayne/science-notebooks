@@ -11,6 +11,7 @@ These notebooks complement, and do not duplicate, the [Minor Planet Center tutor
 | [Resonance overlap: when do two close planets become chaotic?](notebooks/resonance_overlap/resonance_overlap.ipynb) | Deck, Payne & Holman (2013), ApJ 774, 129 | Seconds from the cached results in `cache/`; about 2 h on 12 cores to recompute all ~470,000 integrations; a few minutes with `QUICK = True` |
 | [HelioLinC: linking asteroid detections by guessing their distance](notebooks/heliolinc/heliolinc.ipynb) | Holman, Payne, Blankley, Janssen & Kuindersma (2018), AJ 156, 135 | About 3 minutes |
 | [Transit timing variations from inclined and retrograde companions](notebooks/ttv_inclined/ttv_inclined.ipynb) | Payne, Ford & Veras (2010), ApJL 712, L86 | Seconds from the cached results in `cache/`; about 50 minutes on 12 cores to recompute all ~100,000 integrations; a few minutes with `QUICK = True` |
+| [Interstellar objects in the LSST era: which will Rubin see?](notebooks/iso_lsst/iso_lsst.ipynb) | Hoover, Seligman & Payne (2022), PSJ 3, 71 | About 6 minutes on 12 cores (a million objects, plus five variants); about a minute with `QUICK = True` |
 
 ## Running
 

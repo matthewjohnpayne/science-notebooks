@@ -15,6 +15,7 @@ These notebooks complement, and do not duplicate, the [Minor Planet Center tutor
 | [Shift-and-stack on detection catalogues](notebooks/shift_and_stack/shift_and_stack.ipynb) | Stetzler et al. (2025), AJ 170, 352 | About 3 minutes |
 | [The Laplace resonance of GJ 876](notebooks/laplace_gj876/laplace_gj876.ipynb) | Nelson et al. (2016), MNRAS 455, 2484 | About a minute |
 | [Fitting interacting planets: N-body radial velocities and differential-evolution MCMC](notebooks/rv_demcmc/rv_demcmc.ipynb) | Nelson, Ford & Payne (2014), ApJS 210, 11 | About 30 minutes on 12 cores; a few minutes with `QUICK = True` |
+| [Can moons survive in tightly packed planetary systems?](notebooks/moons_stips/moons_stips.ipynb) | Payne, Deck, Holman & Perets (2013), ApJL 775, L44 | Seconds from the cached results in `cache/`; about 20 minutes on 12 cores to recompute; a few minutes with `QUICK = True` |
 
 ## Running
 

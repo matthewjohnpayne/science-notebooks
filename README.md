@@ -18,6 +18,7 @@ These notebooks complement, and do not duplicate, the [Minor Planet Center tutor
 | [Can moons survive in tightly packed planetary systems?](notebooks/moons_stips/moons_stips.ipynb) | Payne, Deck, Holman & Perets (2013), ApJL 775, L44 | Seconds from the cached results in `cache/`; about 20 minutes on 12 cores to recompute; a few minutes with `QUICK = True` |
 | [How planets lose their moons around white dwarfs](notebooks/exomoons_wd/exomoons_wd.ipynb) | Payne, Veras, Holman & Gänsicke (2016), MNRAS 457, 217; Payne, Veras, Gänsicke & Holman (2017), MNRAS 464, 2557 | A few minutes from the cached results in `cache/`; about 2 h on 12 cores to recompute; `QUICK = True` for 1,000 moons per encounter |
 | [Planet Nine and the Cassini ranging data](notebooks/cassini_planet9/cassini_planet9.ipynb) | Holman & Payne (2016), AJ 152, 94 | Under a minute |
+| [2010 JO179: a dwarf planet in the 21:5 resonance with Neptune](notebooks/jo179_resonance/jo179_resonance.ipynb) | Holman, Payne, Fraser et al. (2018), ApJL 855, L6 | Seconds from the cached results in `cache/`; about 2 h on 12 cores to recompute; a few minutes with `QUICK = True` |
 
 ## Running
 

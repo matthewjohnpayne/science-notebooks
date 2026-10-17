@@ -36,6 +36,7 @@ project:
     - file: book/solar-system.md
       children:
         - file: notebooks/cassini_planet9/cassini_planet9.ipynb
+        - file: notebooks/planet_nine/planet_nine.ipynb
         - file: notebooks/jo179_resonance/jo179_resonance.ipynb
     - file: book/detection.md
       children:

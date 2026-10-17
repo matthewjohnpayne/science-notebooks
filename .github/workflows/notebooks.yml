@@ -1,0 +1,61 @@
+name: Weekly notebook check
+# Execute every notebook (QUICK = True where the notebook has the flag) with the latest
+# dependency versions that requirements.txt allows, without committing any outputs. A failing
+# notebook gets one issue labelled claude-task, with the local command that fixes it
+# (`claude "/fix-notebook <name>"`); later failures comment on that issue instead.
+on:
+  schedule:
+    - cron: '23 7 * * 1'   # Mondays 07:23 UTC
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: notebook-check
+  cancel-in-progress: true
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    outputs:
+      notebooks: ${{ steps.find.outputs.notebooks }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - id: find
+        # every notebooks/<name>/<name>.ipynb, so new notebooks are checked automatically
+        run: |
+          names=$(for d in notebooks/*/; do n=$(basename "$d"); [ -f "$d$n.ipynb" ] && echo "$n"; done)
+          echo "notebooks=$(printf '%s\n' $names | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
+          echo "$names"
+  run:
+    needs: list
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      issues: write
+    strategy:
+      fail-fast: false
+      matrix:
+        notebook: ${{ fromJSON(needs.list.outputs.notebooks) }}
+    env:
+      MPLBACKEND: Agg
+      GH_TOKEN: ${{ github.token }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7.0.0
+        with:
+          python-version: '3.13'
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip freeze | grep -iE '^(numpy|scipy|matplotlib|rebound|mpc.orb|requests|nbclient)=' || true
+      - name: Execute ${{ matrix.notebook }}
+        run: python tools/ci_execute.py "notebooks/${{ matrix.notebook }}/${{ matrix.notebook }}.ipynb" --quick --timeout 4800 --error-file "$RUNNER_TEMP/error.txt"
+      - name: Open or update the issue
+        if: failure() && github.ref == 'refs/heads/main'
+        run: python tools/task_issue.py fail "${{ matrix.notebook }}" --error-file "$RUNNER_TEMP/error.txt" --run-url "$RUN_URL"
+      - name: Note a recovery on an open issue
+        if: success() && github.ref == 'refs/heads/main'
+        run: python tools/task_issue.py pass "${{ matrix.notebook }}" --run-url "$RUN_URL"

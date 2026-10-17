@@ -41,6 +41,20 @@ python tools/execute.py notebooks/resonance_overlap/resonance_overlap.ipynb   # 
 
 The HelioLinC notebook reads real orbits from `notebooks/heliolinc/data/orbits.csv.gz`, an extract of the MPC's MPCORB file. To regenerate it from a fresh MPCORB (about 90 MB, downloaded automatically), run `python tools/fetch_heliolinc_orbits.py`.
 
+## Weekly check
+
+Every Monday a GitHub workflow (`.github/workflows/notebooks.yml`) executes each notebook with the newest dependency versions that `requirements.txt` allows, using `QUICK = True` where a notebook has that flag. Nothing is committed back. If a notebook fails, the workflow opens an issue titled `Notebook failing: <name>` (label `claude-task`) with the error and the command to fix it in a local Claude Code session:
+
+```bash
+cd ~/git_repos/science-notebooks && claude "/fix-notebook <name>"
+```
+
+The `fix-notebook` skill (`.claude/skills/fix-notebook/`) reproduces the failure, fixes the helper module or builder, rebuilds and re-executes the notebook, commits it with outputs and closes the issue; it asks before pushing. To run the same check by hand:
+
+```bash
+python tools/ci_execute.py notebooks/<name>/<name>.ipynb --quick
+```
+
 ## License
 
 - **Code** (helper modules, builders and the code in notebook cells) is released under the MIT License (`LICENSE`).

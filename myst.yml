@@ -1,0 +1,55 @@
+# Jupyter Book 2 (MyST) configuration for the online book at
+# https://matthewjohnpayne.github.io/science-notebooks/ (built by .github/workflows/book.yml).
+# Notebooks are shown with their committed outputs; nothing is executed when the book is built.
+# To add a notebook: add one line `- file: notebooks/<name>/<name>.ipynb` under its research area
+# below, and a row to that area's page in book/.
+version: 1
+project:
+  title: Science notebooks
+  description: Notebooks by Matthew Payne that reproduce results from his research papers by direct computation.
+  authors:
+    - name: Matthew Payne
+      url: https://matthewjohnpayne.github.io/
+  github: https://github.com/matthewjohnpayne/science-notebooks
+  license:
+    code: MIT
+  exclude:
+    - '**/cache/**'
+    - '**/cache_quick/**'
+    - '**/data/**'
+    - tools/**
+    - README.md
+    - AGENTS.md
+    - .claude/**
+  toc:
+    - file: book/intro.md
+    - file: book/exoplanets.md
+      children:
+        - file: notebooks/resonance_overlap/resonance_overlap.ipynb
+        - file: notebooks/ttv_inclined/ttv_inclined.ipynb
+        - file: notebooks/laplace_gj876/laplace_gj876.ipynb
+        - file: notebooks/rv_demcmc/rv_demcmc.ipynb
+    - file: book/moons.md
+      children:
+        - file: notebooks/exomoons_wd/exomoons_wd.ipynb
+        - file: notebooks/moons_stips/moons_stips.ipynb
+    - file: book/solar-system.md
+      children:
+        - file: notebooks/cassini_planet9/cassini_planet9.ipynb
+        - file: notebooks/jo179_resonance/jo179_resonance.ipynb
+    - file: book/detection.md
+      children:
+        - file: notebooks/heliolinc/heliolinc.ipynb
+        - file: notebooks/iso_lsst/iso_lsst.ipynb
+        - file: notebooks/shift_and_stack/shift_and_stack.ipynb
+site:
+  template: book-theme
+  title: Science notebooks · Matthew Payne
+  options:
+    style: book/style.css
+    logo_text: Science notebooks · Matthew Payne
+  nav:
+    - title: Matthew Payne
+      url: https://matthewjohnpayne.github.io/
+    - title: Teaching
+      url: https://matthewjohnpayne.github.io/teaching/

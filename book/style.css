@@ -1,0 +1,3 @@
+/* Links in the teal of matthewjohnpayne.github.io (#078d97, WCAG AA on white; #4fced2 in dark mode). */
+article a:not(.no-underline), .myst-content a { color: #078d97 !important; }
+html.dark article a:not(.no-underline), html.dark .myst-content a { color: #4fced2 !important; }

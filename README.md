@@ -4,6 +4,18 @@ Jupyter notebooks by **Matthew Payne** that explore the dynamics and methods beh
 
 These notebooks complement, and do not duplicate, the [Minor Planet Center tutorials](https://docs.minorplanetcenter.net/tutorials/), which cover working with MPC data and services. Notebooks here are tied to research papers rather than to MPC services.
 
+## Online book
+
+The notebooks can be read online, with their outputs, at **https://matthewjohnpayne.github.io/science-notebooks/**, grouped by research area. The book is built with [Jupyter Book 2](https://jupyterbook.org/) (configuration in `myst.yml`, extra pages in `book/`) by `.github/workflows/book.yml` on every push to `main` that changes a notebook or the book; notebooks are not re-executed there.
+
+To add a notebook to the book, add one line under its research area in the `toc` of `myst.yml`:
+
+```yaml
+        - file: notebooks/<name>/<name>.ipynb
+```
+
+and a row to that area's page in `book/` (with the paper and, if there is one, the interactive web page). To preview locally: `pip install jupyter-book==2.1.7`, then `jupyter-book start` (Node.js 20 or later is needed).
+
 ## Notebooks
 
 | Notebook | Based on | Run time |

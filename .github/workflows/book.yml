@@ -1,0 +1,53 @@
+name: Online book
+# Build the online book (Jupyter Book 2, configured in myst.yml) and publish it with GitHub Pages at
+# https://matthewjohnpayne.github.io/science-notebooks/. The notebooks are shown with the outputs
+# committed in this repository; nothing is executed here (the weekly check, notebooks.yml, runs them).
+# Needs Settings → Pages → Source: "GitHub Actions".
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'notebooks/**/*.ipynb'
+      - 'book/**'
+      - 'myst.yml'
+      - 'README.md'
+      - '.github/workflows/book.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7.0.0
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020   # v4
+        with:
+          node-version: '24'
+      - name: Install Jupyter Book
+        run: pip install "jupyter-book==2.1.7"
+      - name: Build the book (no execution)
+        env:
+          BASE_URL: /science-notebooks
+        run: jupyter-book build --html
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa   # v3
+        with:
+          path: _build/html
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346   # v5

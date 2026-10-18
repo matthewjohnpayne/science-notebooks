@@ -384,26 +384,53 @@ for s in stages_c:
 """)
 
 code(r"""
-fig, axs = plt.subplots(1, 2, figsize=(12, 4.6))
-sc = neocp.plot_admissible(axs[0], attr_c, full_c, rr_c, "(a) admissible region of Crocco's first tracklet")
-axs[0].set_xlim(1e-3, 100)
-fig.colorbar(sc, ax=axs[0], label=r"$\Delta\chi^2$ (capped at 50)")
-X1c, el1c = neocp.draw(stages_c[0], attr_c, N_DRAW, rng)
-neocp.plot_spray(axs[1], el1c, el_c, lim=5.5, title="(b) orbits consistent with that tracklet")
-neocp.group_legend(axs[1])
-fig.suptitle("Figure 7. One tracklet of a main-belt asteroid", fontsize=11)
-plt.tight_layout()
+fig, ax = plt.subplots(figsize=(7, 4.6))
+sc = neocp.plot_admissible(ax, attr_c, full_c, rr_c, "")
+ax.set_xlim(1e-3, 100)
+fig.colorbar(sc, ax=ax, label=r"$\Delta\chi^2$ (capped at 50)")
+ax.set_title("Figure 7. The admissible region of Crocco's first tracklet", fontsize=11)
 plt.show()
 """)
 
 md(r"""
-Crocco, at about 2.5 au, moves slowly, and its tracklet has no measurable curvature: almost every admissible orbit fits (a), from objects a few hundredths of an au away to objects in the outer Solar System; only the very closest are ruled out. The probabilities in the printout are then set by the prior rather than by the data, and the prior is a choice.
+Crocco, at about 2.5 au, moves slowly, and its tracklet has no measurable curvature: almost every admissible orbit fits (Figure 7), from objects a few hundredths of an au away to objects in the outer Solar System; only the very closest are ruled out. The probabilities in the printout are then set by the prior rather than by the data, and the prior is a choice.
+
+### 6.1 One line of sight, many orbits
+
+What does "many orbits fit one tracklet" look like? A tracklet is, in effect, a line of sight: a ray from the observer out into space, along which the asteroid must lie, together with the rate at which that direction is changing. (Its four positions are four rays, but over 20 minutes they are indistinguishable at this scale.) Every orbit that fits places the asteroid somewhere on the ray at the moment of the tracklet, moving so that, seen from the observer, it drifts across the sky at exactly the measured rate. Figure 8 draws a sample of the orbits that fit Crocco's first tracklet: where each one crosses the ray, and its path for 15 days either side, coloured by its distance from the observer at the time of the tracklet.
+""")
+
+code(r"""
+X_ray, el_ray = neocp.draw(stages_c[0], attr_c, N_DRAW, rng)
+g = neocp.ray_geometry(attr_c, X_ray[:150])
+fig, axs = neocp.plot_ray_views(g, zoom_au=0.6)
+fig.suptitle("Figure 8. Orbits that fit one tracklet of (10606) Crocco, and the line of sight they share", fontsize=11, y=0.95)
+plt.show()
+print(f"distances along the line of sight: {g['rho'].min():.3f} to {g['rho'].max():.1f} au (true: {rr_c[0]:.2f} au)")
+""")
+
+md(r"""
+In (a) the orbits are strung along the line of sight out to about 7 au. In (b), close to the observer, you can see what they have in common: each crosses the ray at a different distance and in a different direction, but always so that the asteroid stays on the ray, as seen from the observer, during the hour of the tracklet. The farther along the ray, the faster the orbit must move across it to produce the same angular rate (c): the speed across the line of sight grows in proportion to distance. Close to the Earth the candidates move around the Sun much as the Earth does, at about 30 km/s; far away they must move faster and faster across the line of sight, until, beyond about 7 au, no orbit bound to the Sun can keep up. That is the outer edge of the admissible region.
+
+The observer sees all these orbits as one point moving at one rate at the time of the tracklet. Only as time passes do they separate on the sky (Figure 9): the distant ones stay close to a straight-line extrapolation of the tracklet, while the nearby ones, whose apparent motion is dominated by the observer's own motion and their own faster orbital motion, swing away by degrees within a month.
+""")
+
+code(r"""
+rho_ray = np.linalg.norm(neocp._helio_ec(X_ray[None], np.array([attr_c.t]))[0, :, :3] - g["observer"], axis=1)
+fig, ax, outside = neocp.plot_sky_tracks(attr_c, X_ray[:300], rho_ray[:300], "G96", 30, x_c, t_c)
+ax.set_title("Figure 9. The same orbits seen from the observer over the following 30 days", fontsize=11)
+plt.show()
+print(f"{outside:.0%} of the 30-day tracks end outside the plotted area")
+""")
+
+md(r"""
+### 6.2 More tracklets, and digest2's view
 
 The second tracklet, two days later, rules out the close-in orbits: nothing nearer than about 1 au fits well. But it leaves the radial velocity, and so the shape of the orbit, open: from main-belt orbits to very elongated ones. Many of the elongated orbits have perihelia inside 1.3 au and so, by definition, count as NEO orbits, although the object is several au away, which is why the NEO probability is still substantial. Only the third tracklet, eight days after the first, settles that Crocco is in the main belt.
 
 The digest2 score shows another subtlety. Its usual 'noid' score asks how likely the tracklet is to be an NEO *if it is not an object already known*; since practically every main-belt asteroid as bright as Crocco has already been found, an unknown object this bright would most likely be an NEO, and the score is high. The 'raw' score, which counts the known objects too, is lower. Tracklets are checked against the orbits of known objects before they are considered for the NEOCP, which is why the 'noid' score is the relevant one.
 
-### 6.1 How much does the prior matter?
+### 6.3 How much does the prior matter?
 
 We have used a prior uniform in $\rho$ and $\dot\rho$. A prior uniform in $\ln\rho$ and $\dot\rho$, which gives each factor of distance equal weight, is just as defensible. When the data cannot tell the distances apart, changing the prior changes the answer, with no new data:
 """)
@@ -421,9 +448,9 @@ for name, st in [("2024 YR4", stages), ("(10606) Crocco", stages_c)]:
 md(r"""
 For YR4 the data decide, and the prior does not matter. For Crocco's first tracklet, the probability that it is an NEO moves when an arbitrary choice is changed; it is a statement about the prior as much as about the asteroid. This is why digest2 uses as its prior a model of the actual population of the Solar System, in which main-belt asteroids vastly outnumber NEOs. With more tracklets, the data take over.
 
-### 6.2 When is a Gaussian good enough?
+### 6.4 When is a Gaussian good enough?
 
-Once there are enough observations, an orbit is usually computed by least squares, and its uncertainty described by a covariance matrix: a six-dimensional Gaussian, mapped onto the sky by linearising the orbit's predictions. Ranging makes no such assumption. Figure 8 compares the two after two tracklets, a month later, for both objects.
+Once there are enough observations, an orbit is usually computed by least squares, and its uncertainty described by a covariance matrix: a six-dimensional Gaussian, mapped onto the sky by linearising the orbit's predictions. Ranging makes no such assumption. Figure 10 compares the two after two tracklets, a month later, for both objects.
 """)
 
 code(r"""
@@ -472,7 +499,7 @@ for ax, (name, s, at, (tt, xt), date, stn) in zip(axs, cases):
 handles = [plt.Line2D([], [], marker="o", ls="none", color=c, label=k) for k, c in zip(clouds, neocp.STAGE_COLOURS)]
 handles.append(plt.Line2D([], [], marker="*", ls="none", color=neocp.INK, ms=10, label="true position"))
 axs[0].legend(handles=handles, fontsize=8, frameon=False, loc="upper left")
-fig.suptitle("Figure 8. Gaussian (linearised) and ranging uncertainties, a month after two tracklets", fontsize=11)
+fig.suptitle("Figure 10. Gaussian (linearised) and ranging uncertainties, a month after two tracklets", fontsize=11)
 plt.tight_layout()
 plt.show()
 """)
@@ -493,7 +520,7 @@ For YR4 the two agree: its orbit was well determined after two nights, and over 
 
 * **Try another object.** `neocp.load(designation)` fetches any object's observations; pick tracklet identifiers from `obs.trk` (or use `obs.tracklets()`) and re-run Sections 2-5.
 * **Longer tracklets, better astrometry.** Change `groups[0]` to keep fewer or more positions, or change `SIGMA_FLOOR`, and watch how the diurnal-curvature constraint in Figure 2 appears and disappears.
-* **A full orbit-fitting code.** [layup](https://github.com/Smithsonian/layup) (Holman et al.) fits orbits and predicts positions with uncertainties at the scale of the Rubin Observatory's survey; its fits can be compared with Section 6.2.
+* **A full orbit-fitting code.** [layup](https://github.com/Smithsonian/layup) (Holman et al.) fits orbits and predicts positions with uncertainties at the scale of the Rubin Observatory's survey; its fits can be compared with Section 6.4.
 * **Next in this series:** how impact probabilities rise and then fall as the uncertainty region shrinks past the Earth (2024 YR4 again), and the "impact corridor" of an asteroid that does hit.
 """)
 

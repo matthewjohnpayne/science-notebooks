@@ -267,36 +267,50 @@ the baseline across the line of sight times the *fractional* uncertainty of the 
 
 For a stellar occultation the two directions on the sky play different roles. The asteroid's shadow sweeps across the observer's plane along the direction of the apparent motion, so an error **along** the motion only shifts the *time* of the event (by the error divided by the shadow's speed); an error **across** the motion shifts the *path*, and decides whether a given observer sees the event at all. A TNO a few hundred km across can be observed only if the path is known to a fraction of its size.
 
-Here is how both evolve after the end of 14- and 28-day arcs, for predictions made for observers at Roman and on the Earth (the Earth's centre; observers on its surface differ by at most its radius, negligible here), through the rest of the season and into the autumn season.
+Here is how both evolve over the 60 days after the end of 14- and 28-day arcs (beyond the end of the season, Roman can no longer observe the field, but predictions for the ground still matter), for observers at Roman and on the Earth (the Earth's centre; observers on its surface differ by at most its radius, negligible here). The table after the figure continues into the autumn season. Panel (a) shows the whole uncertainty, the major axis of the uncertainty ellipse on the sky, which does not depend on the direction of motion; (b) and (c) split it into the parts across and along the apparent motion.
 """)
 
 code(r"""
 LATER = [0, 3, 7, 14, 28, 56]
 autumn = Time(roman.AUTUMN_2027[0], scale="utc").tdb.jd - JD
+STATIONARY = (Time("2027-03-26").datetime, Time("2027-04-04").datetime)   # the objects' slowest motion (Section 2)
+series = {}
+for name in truth:
+    for arc in (14, 28):
+        O, f, S = fits[(name, arc)]
+        tt = O.t[-1] + np.arange(0, 61, 2.0)
+        series[(name, arc)] = (tt, roman.spread_series(S, f.t, f.state, tt, TRAJ))
+
+fig, axs = plt.subplots(2, 3, figsize=(15, 8), sharex=True)
+for row, arc in enumerate((14, 28)):
+    for (name, x), c in zip(truth.items(), roman.COLOURS):
+        tt, sp = series[(name, arc)]
+        dates = Time(tt + JD, format="jd", scale="tdb").datetime
+        for who, ls in (("Roman", "-"), ("Earth", "--")):
+            r = sp[who]
+            lab = f"{name}, {who}" if row == 0 else None
+            axs[row, 0].plot(dates, r["major"], ls, color=c, lw=1.8, label=lab)
+            axs[row, 1].plot(dates, r["across"], ls, color=c, lw=1.8)
+            axs[row, 2].plot(dates, r["along"] / r["rate_km_s"], ls, color=c, lw=1.8)
+    for ax, lab in zip(axs[row], ["whole uncertainty: major axis (km)", "path: across the motion (km)", "timing: along the motion (s)"]):
+        ax.set_yscale("log")
+        ax.axvspan(*STATIONARY, color=roman.MUTED, alpha=0.2, lw=0)
+        ax.set_ylabel(f"after a {arc}-day arc\n{lab}" if ax is axs[row, 0] else lab)
+for ax, title in zip(axs[0], ["(a) the whole uncertainty grows steadily", "(b) its share across the motion: the path", "(c) its share along the motion: the timing"]):
+    ax.set_title(title, fontsize=10)
+axs[0, 0].text(STATIONARY[0], axs[0, 0].get_ylim()[1] * 0.5, " stationary\n points", fontsize=8, color=roman.INK, va="top")
+axs[0, 0].legend(fontsize=7, frameon=False, ncol=2, loc="lower right")
+fig.autofmt_xdate()
+fig.suptitle("Figure 5. Occultation predictions for the 60 days after a Roman arc (solid: for Roman; dashed: for the Earth; shaded: the stationary points)", fontsize=11)
+plt.tight_layout()
+plt.show()
+
 rows = {}
 for name in truth:
     for arc in (14, 28):
         O, f, S = fits[(name, arc)]
         times = list(O.t[-1] + np.array(LATER)) + [autumn]
         rows[(name, arc)] = [roman.spread(S, f.t, f.state, tt, TRAJ) for tt in times]
-
-fig, axs = plt.subplots(2, 2, figsize=(12, 8), sharex=True)
-for row, arc in enumerate((14, 28)):
-    for (name, x), c in zip(truth.items(), roman.COLOURS):
-        sp = rows[(name, arc)][:-1]
-        for who, ls in (("Roman", "-"), ("Earth", "--")):
-            axs[row, 0].plot(LATER, [s[who]["across"] for s in sp], ls, color=c, lw=2, label=f"{name}, {who}" if row == 0 else None)
-            axs[row, 1].plot(LATER, [s[who]["along"] / s[who]["rate_km_s"] for s in sp], ls, color=c, lw=2)
-    axs[row, 0].set_ylabel(f"after a {arc}-day arc\npath uncertainty, across (km)")
-    axs[row, 1].set_ylabel("timing uncertainty (s)")
-    for ax in axs[row]:
-        ax.set_yscale("log")
-axs[1, 0].set_xlabel("days after the end of the arc"); axs[1, 1].set_xlabel("days after the end of the arc")
-axs[0, 0].legend(fontsize=7, frameon=False, ncol=2)
-fig.suptitle("Figure 5. Occultation predictions from a Roman arc: solid, for Roman; dashed, for the Earth", fontsize=11)
-plt.tight_layout()
-plt.show()
-
 for name in truth:
     O, f, S = fits[(name, 70)]
     s70 = roman.spread(S, f.t, f.state, autumn, TRAJ)
@@ -313,16 +327,18 @@ for (name, arc), sp in rows.items():
 md(r"""
 What stands out:
 
-* **At first, the vantage point matters.** At the end of a 14-day arc the TNOs' paths are predicted to a few tens of km for Roman, but to about 100 to 200 km for the Earth: the extra $B_\perp \sigma_\rho/\rho$ of Section 4. After 28 days of data the difference is about a factor of two. Within a few weeks the difference fades, because other parts of the uncertainty grow and dominate.
-* **The path uncertainty grows within days to weeks.** After a 14-day arc, the TNOs' paths are uncertain by a few hundred km after a week and a few thousand km after a month; a 28-day arc keeps them near 100 km for a month, enough for occultations by TNOs of a few hundred km. The curves are not monotonic: the uncertainty grows mainly *along the orbit*, and how that divides between "along" and "across" the apparent motion changes as the direction of the apparent motion swings around the stationary point (Figure 2).
-* **Timing uncertainties are seconds at first, minutes after a month.** Near the stationary point the shadow moves slowly, so a given along-track error means a long timing error; a timing uncertainty, though, can be covered by observing for longer.
+* **The whole uncertainty only grows** (a): mostly *along the orbit*, because the orbit's period is uncertain and the error in where the object is along its orbit accumulates. On the sky the uncertainty ellipse grows longer and longer while keeping almost the same orientation, along the orbit's projection on the sky.
+* **But how it divides between path and timing changes**, and that is why the path uncertainty (b) rises and then falls. The shadow of an occultation sweeps across the Earth in the direction of the object's apparent motion, so only the part of the ellipse *across* that direction affects where the path falls. Far from the stationary point the object moves on the sky roughly along its orbit's projection, so the ellipse's long axis lies along the motion and affects only the timing (c). Near the stationary point (shaded), the observer's own motion cancels the object's east-west motion and the direction of apparent motion swings round, through more than 90 degrees; the long axis then lies *across* the motion, and the path uncertainty peaks, while the timing uncertainty dips. Once the object has turned round, its motion lines up with the long axis again and the path uncertainty falls back. So the peak is not an artefact: occultations near a stationary point really are much harder to place on the ground, though easier to time.
+* **At first, the vantage point matters.** At the end of a 14-day arc the TNOs' paths are predicted to a few tens of km for Roman, but to about 100 to 200 km for the Earth: the extra $B_\perp \sigma_\rho/\rho$ of Section 4. After 28 days of data the difference is about a factor of two. Within a few weeks it fades, as the uncertainty along the orbit grows and dominates for both.
+* **After a 14-day arc the path is soon uncertain by hundreds to thousands of km** (thousands near the stationary point). After a 28-day arc it stays at a few hundred km at most for the following two months, largest near the stationary point: enough to plan occultations by the larger TNOs.
+* **Timing uncertainties are seconds at first and minutes within a month.** A timing uncertainty can be covered by observing for longer; a path uncertainty cannot.
 * **The gap between seasons is the real limit.** By the autumn season, five months later, the paths from a 14-day arc are uncertain by tens of thousands of km, and from a 28-day arc by thousands, from either vantage point. Only the full season's data (printed above) carry a TNO's path into the next season, with an uncertainty of one to a few hundred km.
 
 ## 6. Summary
 
 * From part of a 70-day stare, Roman's milliarcsecond astrometry determines a TNO's semi-major axis to $\sigma_a/a \sim 10^{-3}$ in two to four weeks (for objects of about F146 = 24), and the full season to $\sim 10^{-5}$. Nearer objects need shorter arcs.
 * The resulting uncertainty is a long, thin cloud along Roman's line of sight. Roman sees it end on; observers on the Earth, 1.5 million km away and largely across the line of sight, see part of its length: an extra spread of about $B_\perp\,\sigma_\rho/\rho$, a few hundred km after two weeks, independent of the object's distance.
-* For occultation predictions, the path stays within about 100 km for a month after a 28-day arc but degrades within a week or two after a 14-day one; timing uncertainties grow from seconds to minutes; and the five-month gap between seasons is the main obstacle for any arc short of the full season. Near quadrature the objects pass their stationary points, which complicates the split between path and timing errors.
+* For occultation predictions, the path stays within a few hundred km for two months after a 28-day arc but degrades within a week or two after a 14-day one; timing uncertainties grow from seconds to minutes; and the five-month gap between seasons is the main obstacle for any arc short of the full season. Near the stationary points, which fall in the spring season because the bulge is observed near quadrature, the long axis of the uncertainty turns across the motion and the path uncertainty peaks.
 
 ## 7. Going further
 

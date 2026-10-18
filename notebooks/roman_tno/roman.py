@@ -108,3 +108,32 @@ def spread(S, t_fit, x_mean, t, traj):
         rate = np.linalg.norm(((X1 - o1) - (Xm[:3] - o0)) - (((X1 - o1) - (Xm[:3] - o0)) @ F[2]) * F[2]) * KM / 864.0
         out[who] = dict(along=d[:, 0].std(), across=d[:, 1].std(), los=d[:, 2].std(), rate_km_s=rate, cloud=d, dist_au=dist)
     return out
+
+
+def spread_series(S, t_fit, x_mean, times, traj):
+    """As `spread`, at many TDB times at once (one integration). Returns, for 'Roman' and 'Earth',
+    arrays over time of the sky-plane uncertainty ellipse's major and minor axes, the 1-sigma
+    uncertainty along and across the apparent motion (all km at the object), and the apparent
+    rate (km/s at the object)."""
+    times = np.asarray(times, float)
+    P = ephem.propagate(S, t_fit, times)[..., :3]                       # (M, N, 3)
+    Xm = ephem.propagate(x_mean[None], t_fit, np.r_[times, times + 0.01])[:, 0, :3]
+    Xm0, Xm1 = Xm[:len(times)], Xm[len(times):]
+    out = {}
+    for who in ("Roman", "Earth"):
+        o0, o1 = observer(traj, times, who), observer(traj, times + 0.01, who)
+        res = {k: np.empty(len(times)) for k in ("major", "minor", "along", "across", "rate_km_s")}
+        for k in range(len(times)):
+            u0 = Xm0[k] - o0[k]
+            u0 /= np.linalg.norm(u0)
+            rel = (Xm1[k] - o1[k]) - (Xm0[k] - o0[k])
+            along = rel - (rel @ u0) * u0
+            res["rate_km_s"][k] = np.linalg.norm(along) * KM / 864.0
+            along /= np.linalg.norm(along)
+            F = np.array([along, np.cross(u0, along)])
+            d = (P[k] - P[k].mean(0)) @ F.T * KM
+            w = np.linalg.eigvalsh(np.cov(d.T))
+            res["minor"][k], res["major"][k] = np.sqrt(w)
+            res["along"][k], res["across"][k] = d.std(0)
+        out[who] = res
+    return out

@@ -55,3 +55,28 @@ These follow the repository's AGENTS.md:
 - MPC data are cached (gzip JSON) in each notebook's `data/`.
 - ASSIST ephemerides go in `$ASSIST_DIR`, or are downloaded to `~/.orbunc`.
 - The figure palette was validated for colour-blind safety: categorical #2a78d6, #eb6834, #1baf7a, with direct labels or legends.
+
+## Further directions (Matthew, 2026-10-18; not started)
+
+These are possible additions to the NEO/NEOCP side of the project.
+
+**(a) More "standard" examples.**
+- Add typical NEOCP objects alongside, or instead of, the unusual 2024 YR4: an ordinary NEO, a main-belt object posted to the NEOCP, a slow distant object.
+- They might be chosen systematically, for example from NEOCP postings, by digest2 score and discovery geometry.
+
+**(b) When can the covariance of a designated short-arc orbit be trusted?**
+- The question concerns orbits with a few tracklets, good enough to be designated and to enter `orbfit_results`.
+- Figure 8 of `neocp_uncertainty` shows the Gaussian and ranging disagreeing after two tracklets.
+- Is there a cheap diagnostic other than direct N-body sampling? Ideas to test (references to be checked before use):
+  - nonlinearity indices, comparing first- and second-order terms of the orbit-to-prediction map;
+  - comparing the Δχ² actually reached at ±kσ along the covariance's principal axes (especially the weakest direction, the line of variations) with the quadratic prediction;
+  - sigma-point (unscented) propagation of 13 orbits against the linear map;
+  - comparing the size of the uncertainty with the scale on which the predictions curve.
+- Calibrate any such diagnostic against ranging or Monte Carlo results.
+
+**(c) How often does reality fall inside the predicted envelopes?**
+- Motivated by the NEOCP development about to start in mpc-software.
+- Method: for many real objects, fit each stage of their early history (1, 2, 3 tracklets, ...) with each method (linear covariance, ranging, MCMC, ...). Predict their later positions, and compare with the positions later observed or with the final orbit.
+- Measure the coverage: how often the truth falls within the 1, 2 and 3σ (or 68, 95, 99.7%) regions. Show it as calibration curves or probability-integral-transform histograms.
+- Use observations by submission time (as in `impact_probability`), and expect formal uncertainties to be optimistic (see `occultations`, Part B).
+- This is the large-sample version of Figure 8.

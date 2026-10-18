@@ -58,4 +58,4 @@ def residuals(states, t0, obs):
 
 def chi2(states, t0, obs):
     res = residuals(states, t0, obs)
-    return np.sum(res ** 2 * obs.weights, axis=(-1, -2))
+    return np.sum(obs.whiten(res) ** 2, axis=(-1, -2))

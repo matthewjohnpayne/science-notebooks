@@ -149,21 +149,20 @@ def _lm(q, build, obs, t, h, n_iter, max_step=None, lower=None, upper=None):
     Returns (q_best, chi2_best, normal matrix J^T W J at q_best (n, m, m)).
     """
     n, m = q.shape
-    W = obs.weights.reshape(1, -1)
     q_best, chi_best = q.copy(), np.full(n, np.inf)
     A, g = np.zeros((n, m, m)), np.zeros((n, m))
     lam = np.full(n, 1e-3)
     for _ in range(n_iter):
         Q = np.concatenate([q] + [q + h[k] * np.eye(m)[k] for k in range(m)])
-        res = residuals(build(Q), t, obs).reshape(m + 1, n, -1)
-        chi = np.sum(res[0] ** 2 * W, axis=1)
+        res = obs.whiten(residuals(build(Q), t, obs)).reshape(m + 1, n, -1)   # unit-variance residuals
+        chi = np.sum(res[0] ** 2, axis=1)
         chi = np.where(np.isfinite(chi), chi, np.inf)
         better = chi < chi_best
         q_best[better], chi_best[better] = q[better], chi[better]
         lam = np.where(better, lam / 10, lam * 10)
         J = np.moveaxis(-(res[1:] - res[0][None]) / h[:, None, None], 0, -1)   # (n, M, m)
-        A[better] = np.einsum("nki,k,nkj->nij", J, W[0], J)[better]
-        g[better] = np.einsum("nki,k,nk->ni", J, W[0], res[0])[better]
+        A[better] = np.einsum("nki,nkj->nij", J, J)[better]
+        g[better] = np.einsum("nki,nk->ni", J, res[0])[better]
         D = A + lam[:, None, None] * A * np.eye(m)[None] + 1e-30 * np.eye(m)[None]
         step = np.linalg.solve(D, g[..., None])[..., 0]
         if max_step is not None:

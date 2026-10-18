@@ -152,10 +152,13 @@ def test_with_floor():
     o = object.__new__(mpc.Observations)
     for name in mpc.Observations.__dataclass_fields__:
         setattr(o, name, np.zeros(3))
+    o.kind = np.array(["optical", "optical", "occultation"])
     o.sig_ra = np.array([0.05, 0.3, 1.0])
     o.sig_dec = np.array([0.1, 0.1, 2.0])
     f = o.with_floor(0.2)
     assert f.sig_ra.tolist() == [0.2, 0.3, 1.0] and f.sig_dec.tolist() == [0.2, 0.2, 2.0]
+    o.sig_ra = np.array([0.05, 0.3, 0.005])
+    assert o.with_floor(0.2).sig_ra.tolist() == [0.2, 0.3, 0.005]   # occultations keep their uncertainty
     assert o.sig_ra[0] == 0.05   # the original is unchanged
 
 

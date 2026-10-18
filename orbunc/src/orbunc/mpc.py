@@ -100,12 +100,28 @@ class Observations:
     mag: np.ndarray
     band: np.ndarray
     obsid: np.ndarray = None   # MPC observation identifiers
+    corr: np.ndarray = None    # correlation of the RA*cos(Dec) and Dec errors (ADES rmsCorr); 0 if absent
+    kind: np.ndarray = None    # "optical" or "occultation"
+    geo_km: np.ndarray = None  # (N, 3) geocentric ICRF observer position in km, if given in the record (else NaN)
     t: np.ndarray = field(init=False)          # TDB days since J2000
     observer: np.ndarray = field(init=False)   # (N, 6) barycentric station states
 
     def __post_init__(self):
-        self.t = utc_jd_to_tdb(self.jd_utc) if len(self.jd_utc) else np.empty(0)
-        self.observer = observer_states(self.stn, self.jd_utc) if len(self.jd_utc) else np.empty((0, 6))
+        n = len(self.jd_utc)
+        if self.corr is None:
+            self.corr = np.zeros(n)
+        if self.kind is None:
+            self.kind = np.full(n, "optical")
+        if self.geo_km is None:
+            self.geo_km = np.full((n, 3), np.nan)
+        self.t = utc_jd_to_tdb(self.jd_utc) if n else np.empty(0)
+        self.observer = np.empty((n, 6))
+        given = np.isfinite(self.geo_km[:, 0])
+        if (~given).any():
+            self.observer[~given] = observer_states(self.stn[~given], self.jd_utc[~given])
+        for k in np.where(given)[0]:
+            self.observer[k] = body_state("earth", self.t[k])[0]
+            self.observer[k, :3] += self.geo_km[k] / AU_KM
 
     def __len__(self):
         return len(self.jd_utc)
@@ -136,8 +152,9 @@ class Observations:
         and timing errors), so the smallest of them are not to be trusted.
         """
         new = self.select(np.arange(len(self)))
-        new.sig_ra = np.maximum(self.sig_ra, sigma_floor)
-        new.sig_dec = np.maximum(self.sig_dec, sigma_floor)
+        opt = self.kind == "optical"   # occultation astrometry is not subject to the floor
+        new.sig_ra = np.where(opt, np.maximum(self.sig_ra, sigma_floor), self.sig_ra)
+        new.sig_dec = np.where(opt, np.maximum(self.sig_dec, sigma_floor), self.sig_dec)
         return new
 
     def deweight_nights(self, n0=4):
@@ -152,7 +169,7 @@ class Observations:
         night = np.floor(self.jd_utc + lon / 360.0).astype(int)
         key = np.char.add(self.stn.astype(str), night.astype(str))
         _, inv, counts = np.unique(key, return_inverse=True, return_counts=True)
-        factor = np.sqrt(np.maximum(counts[inv] / n0, 1.0))
+        factor = np.where(self.kind == "optical", np.sqrt(np.maximum(counts[inv] / n0, 1.0)), 1.0)
         new = self.select(np.arange(len(self)))
         new.sig_ra = self.sig_ra * factor
         new.sig_dec = self.sig_dec * factor
@@ -169,25 +186,51 @@ class Observations:
         when = self.jd_utc if submitted is None else submitted
         return self.select(np.where(when < jd_utc)[0])
 
+    def whiten(self, res):
+        """Residuals (..., N, 2) in radians, transformed so that each has unit covariance.
+
+        Each observation's errors in (RA*cos Dec, Dec) have covariance
+        [[s_a^2, r s_a s_d], [r s_a s_d, s_d^2]]; the transformed residuals are uncorrelated with
+        unit variance, so chi-squared is simply their sum of squares.
+        """
+        sa = self.sig_ra * ARCSEC
+        sd = self.sig_dec * ARCSEC
+        r = np.clip(self.corr, -0.999, 0.999)
+        z1 = res[..., 0] / sa
+        z2 = (res[..., 1] / sd - r * z1) / np.sqrt(1 - r * r)
+        return np.stack([z1, z2], axis=-1)
+
     @property
     def weights(self):
         """Inverse variances (N, 2) in rad^-2 for (RA*cos Dec, Dec)."""
         return np.stack([1 / (self.sig_ra * ARCSEC) ** 2, 1 / (self.sig_dec * ARCSEC) ** 2], axis=-1)
 
 
-def from_ades(records, default_sigma=1.0, start=None, end=None):
+def from_ades(records, default_sigma=1.0, start=None, end=None, occultations=False):
     """Build Observations from ADES records; missing uncertainties get `default_sigma` arcsec.
 
-    Space-based stations and records without a position are dropped; so are records outside
-    [start, end] if given (ISO date strings, compared with the ADES obsTime).
+    Records outside [start, end] (ISO date strings, compared with the ADES obsTime) and records
+    without a position are dropped. So are space-based and roving observers, and occultation
+    astrometry unless `occultations` is True; occultation records (ADES mode OCC) give the
+    observer's geocentric position in km (sys ICRF_KM, ctr 399) and correlated uncertainties.
     """
     keep = []
     for o in records:
         if (start and o.get("obstime", "") < start) or (end and o.get("obstime", "") > end):
             continue
+        occ = o.get("mode") == "OCC"
+        if occ and o.get("ra") in (None, "") and o.get("rastar") not in (None, ""):
+            # occultation astrometry: the star's position plus the offsets deltaRA (times cos Dec) and
+            # deltaDec, in arcsec, of the asteroid from the star as seen from the given observer position
+            o = dict(o)
+            dec_star = float(o["decstar"])
+            o["dec"] = dec_star + float(o.get("deltadec") or 0) / 3600
+            o["ra"] = float(o["rastar"]) + float(o.get("deltara") or 0) / 3600 / np.cos(np.radians(dec_star))
         if o.get("ra") in (None, "") or o.get("obstime") in (None, ""):
             continue
-        if o.get("sys") not in (None, "") or o.get("pos1") not in (None, ""):
+        if occ and not (occultations and o.get("sys") == "ICRF_KM" and float(o.get("ctr") or 0) == 399):
+            continue
+        if not occ and (o.get("sys") not in (None, "") or o.get("pos1") not in (None, "")):
             continue  # satellite or roving observer
         keep.append(o)
     keep.sort(key=lambda o: o["obstime"])
@@ -201,6 +244,10 @@ def from_ades(records, default_sigma=1.0, start=None, end=None):
         trk=np.array([o.get("trkid") or o.get("trksub") or f"{o['stn']}{o['obstime'][:10]}" for o in keep]),
         mag=f("mag", np.nan), band=np.array([o.get("band") or "" for o in keep]),
         obsid=np.array([o.get("obsid") or "" for o in keep]),
+        corr=f("rmscorr", 0.0),
+        kind=np.array(["occultation" if o.get("mode") == "OCC" else "optical" for o in keep]),
+        geo_km=np.array([[float(o[k]) for k in ("pos1", "pos2", "pos3")] if o.get("mode") == "OCC" else [np.nan] * 3
+                         for o in keep]).reshape(-1, 3),
     )
 
 

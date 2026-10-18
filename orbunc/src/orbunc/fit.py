@@ -14,7 +14,8 @@ class OrbitFit:
     chi2: float
     nobs: int
     res: np.ndarray        # (M, 2) residuals, radians
-    used: np.ndarray = None  # (M,) False for observations rejected as outliers
+    used: np.ndarray = None  # (M,) False for observations rejected as outliers (fit_orbit_robust;
+                             # its res then covers all M observations)
 
 
 def fit_orbit(state, t, obs, n_iter=20, h=(1e-8, 1e-10), tol=1e-6):
@@ -25,18 +26,17 @@ def fit_orbit(state, t, obs, n_iter=20, h=(1e-8, 1e-10), tol=1e-6):
     """
     x = np.asarray(state, float).copy()
     step = np.array([h[0]] * 3 + [h[1]] * 3)
-    W = obs.weights.ravel()
     lam, chi_best = 1e-3, np.inf
     for _ in range(n_iter):
         X = np.vstack([x] + [x + step[k] * np.eye(6)[k] for k in range(6)] + [x - step[k] * np.eye(6)[k] for k in range(6)])
-        res = residuals(X, t, obs).reshape(13, -1)
-        chi = np.sum(res[0] ** 2 * W)
+        res = obs.whiten(residuals(X, t, obs)).reshape(13, -1)   # unit-variance residuals
+        chi = np.sum(res[0] ** 2)
         if chi < chi_best:
             converged = chi_best - chi < tol * chi
             x_best, chi_best, r_best = x.copy(), chi, res[0]
             J = -(res[1:7] - res[7:13]).T / (2 * step)
-            A = J.T @ (J * W[:, None])
-            g = J.T @ (W * r_best)
+            A = J.T @ J
+            g = J.T @ r_best
             lam /= 10
             if converged:
                 break
@@ -44,7 +44,8 @@ def fit_orbit(state, t, obs, n_iter=20, h=(1e-8, 1e-10), tol=1e-6):
             lam *= 10
         x = x_best + np.linalg.solve(A + lam * np.diag(np.diag(A)), g)
     cov = np.linalg.inv(A)
-    return OrbitFit(t, x_best, cov, chi_best, len(obs), r_best.reshape(-1, 2))
+    res = residuals(x_best[None], t, obs)[0]
+    return OrbitFit(t, x_best, cov, chi_best, len(obs), res)
 
 
 def fit_orbit_robust(state, t, obs, chi2_reject=8.0, chi2_recover=7.0, max_rounds=6, **kw):
@@ -59,12 +60,13 @@ def fit_orbit_robust(state, t, obs, chi2_reject=8.0, chi2_recover=7.0, max_round
     for _ in range(max_rounds):
         f = fit_orbit(x, t, obs.select(np.where(used)[0]), **kw)
         x = f.state
-        chi_i = np.sum(residuals(x[None], t, obs)[0] ** 2 * obs.weights, axis=1)
+        chi_i = np.sum(obs.whiten(residuals(x[None], t, obs)[0]) ** 2, axis=1)
         new = np.where(used, chi_i <= chi2_reject, chi_i < chi2_recover)
         if np.array_equal(new, used):
             break
         used = new
     f.used = used
+    f.res = residuals(f.state[None], t, obs)[0]   # residuals of all observations, rejected ones included
     return f
 
 

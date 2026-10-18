@@ -35,6 +35,7 @@ and a row to that area's page in `book/` (with the paper and, if there is one, t
 | [What does a new asteroid's first night tell us? Orbits from one, two and three tracklets](notebooks/neocp_uncertainty/neocp_uncertainty.ipynb) | Orbital-uncertainty series (not tied to a single paper); uses the `orbunc` toolkit | About 10 minutes; about 5 minutes with `QUICK = True`. Needs the ASSIST ephemerides (see below) |
 | [Why did 2024 YR4's impact probability rise before it fell?](notebooks/impact_probability/impact_probability.ipynb) | Orbital-uncertainty series; uses the `orbunc` toolkit | About a minute from the cached results in `cache/`; about 45 minutes to recompute; a few minutes with `QUICK = True` |
 | [What does a stellar occultation do to an asteroid's orbit?](notebooks/occultations/occultations.ipynb) | Orbital-uncertainty series; uses the `orbunc` toolkit | About five minutes; a few minutes with `QUICK = True` |
+| [Seen from Roman, seen from the ground: orbits of distant objects from the Galactic Bulge survey](notebooks/roman_tno/roman_tno.ipynb) | Orbital-uncertainty series; uses the `orbunc` toolkit and Roman's trajectory from JPL Horizons | About two minutes |
 
 ## Running
 

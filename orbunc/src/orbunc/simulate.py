@@ -41,6 +41,24 @@ def astrometry(x_true, t0, jd_utc, stn, sigma_arcsec, rng, trk=None):
         mag=np.full(n, np.nan), band=np.full(n, ""), obsid=np.full(n, ""))
 
 
+def astrometry_from_space(x_true, t0, jd_utc, geo_km, sigma_arcsec, rng, stn="SPACE", trk=None):
+    """Simulated astrometry of orbit x_true (state at t0) from a spacecraft at geocentric positions
+    geo_km (M, 3), with independent Gaussian errors of sigma_arcsec. Returns Observations."""
+    jd_utc = np.atleast_1d(np.asarray(jd_utc, float))
+    n = len(jd_utc)
+    tmp = Observations(jd_utc=jd_utc, ra=np.zeros(n), dec=np.zeros(n), sig_ra=np.ones(n), sig_dec=np.ones(n),
+                       stn=np.full(n, stn), trk=np.full(n, ""), mag=np.full(n, np.nan), band=np.full(n, ""),
+                       obsid=np.full(n, ""), geo_km=np.asarray(geo_km, float))
+    ra, dec, _ = predict.predict(x_true[None], t0, tmp.t, tmp.observer)
+    e = rng.normal(0, sigma_arcsec, (n, 2)) * ARCSEC
+    tmp.ra = np.mod(ra[0] + e[:, 0] / np.cos(dec[0]), 2 * np.pi)
+    tmp.dec = dec[0] + e[:, 1]
+    tmp.sig_ra[:] = sigma_arcsec
+    tmp.sig_dec[:] = sigma_arcsec
+    tmp.trk = np.asarray(trk if trk is not None else np.full(n, "space"))
+    return tmp
+
+
 def survey_history(x_true, t0, years, stn, sigma_arcsec, rng, nights=(-10, 0, 10), per_night=3, spacing_h=0.5):
     """A simulated observing history: for each year, tracklets of `per_night` positions spacing_h hours
     apart on nights at the given offsets (days) from opposition, each taken when the asteroid is

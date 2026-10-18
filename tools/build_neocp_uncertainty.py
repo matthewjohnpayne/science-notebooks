@@ -88,7 +88,7 @@ The residuals are a tenth of an arcsecond or so, the typical quality of modern a
 
 ### 1.2 Three tracklets
 
-ATLAS (observatory code W68, Chile) reported YR4 on 2024 December 27: four positions in 53 minutes. Many observatories followed it within hours; to mimic how the picture develops night by night, we take just two follow-up tracklets, from the Catalina Sky Survey (703, Arizona) one day later and from Sandlot Observatory (H36) two days later. (There were also earlier, pre-discovery observations on December 25 and 26, found later; we ignore those.)
+ATLAS (observatory code W68, Chile) reported YR4 on 2024 December 27: four positions in 53 minutes. Many observatories observed it within hours, although some of those observations reached the MPC only weeks later. To mimic how the picture develops night by night, we take just two follow-up tracklets, from the Catalina Sky Survey (703, Arizona) one day later and from Sandlot Observatory (H36) two days later; according to the MPC's records, all three tracklets were submitted within about half an hour of being taken, so this is a sequence that orbit computers really saw. (There were also earlier, pre-discovery observations on December 25 and 26, submitted later; we ignore those.)
 """)
 
 code(r"""

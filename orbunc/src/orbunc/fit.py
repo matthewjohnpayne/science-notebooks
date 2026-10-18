@@ -14,6 +14,7 @@ class OrbitFit:
     chi2: float
     nobs: int
     res: np.ndarray        # (M, 2) residuals, radians
+    used: np.ndarray = None  # (M,) False for observations rejected as outliers
 
 
 def fit_orbit(state, t, obs, n_iter=20, h=(1e-8, 1e-10), tol=1e-6):
@@ -44,6 +45,27 @@ def fit_orbit(state, t, obs, n_iter=20, h=(1e-8, 1e-10), tol=1e-6):
         x = x_best + np.linalg.solve(A + lam * np.diag(np.diag(A)), g)
     cov = np.linalg.inv(A)
     return OrbitFit(t, x_best, cov, chi_best, len(obs), r_best.reshape(-1, 2))
+
+
+def fit_orbit_robust(state, t, obs, chi2_reject=8.0, chi2_recover=7.0, max_rounds=6, **kw):
+    """fit_orbit with automatic outlier rejection (Carpino, Milani & Chesley 2003).
+
+    An observation whose chi-squared (of its two coordinates) exceeds chi2_reject is dropped,
+    and a dropped one is restored when its chi-squared falls below chi2_recover; repeat until
+    the set of observations no longer changes.
+    """
+    used = np.ones(len(obs), bool)
+    x = np.asarray(state, float)
+    for _ in range(max_rounds):
+        f = fit_orbit(x, t, obs.select(np.where(used)[0]), **kw)
+        x = f.state
+        chi_i = np.sum(residuals(x[None], t, obs)[0] ** 2 * obs.weights, axis=1)
+        new = np.where(used, chi_i <= chi2_reject, chi_i < chi2_recover)
+        if np.array_equal(new, used):
+            break
+        used = new
+    f.used = used
+    return f
 
 
 def sample_gaussian(fit, n, rng):

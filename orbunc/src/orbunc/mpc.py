@@ -99,6 +99,7 @@ class Observations:
     trk: np.ndarray         # tracklet identifier
     mag: np.ndarray
     band: np.ndarray
+    obsid: np.ndarray = None   # MPC observation identifiers
     t: np.ndarray = field(init=False)          # TDB days since J2000
     observer: np.ndarray = field(init=False)   # (N, 6) barycentric station states
 
@@ -139,6 +140,35 @@ class Observations:
         new.sig_dec = np.maximum(self.sig_dec, sigma_floor)
         return new
 
+    def deweight_nights(self, n0=4):
+        """A copy in which a station's batch of more than n0 positions in one night is down-weighted.
+
+        Uncertainties are scaled by sqrt(N/n0) for a batch of N > n0, as proposed by
+        Vereš et al. (2017), so that many positions from one night, which share systematic
+        errors, do not count as many independent measurements. A night runs from local noon to
+        local noon at the station.
+        """
+        lon = np.array([float(fetch_obscode(str(s)).get("longitude") or 0) for s in self.stn])
+        night = np.floor(self.jd_utc + lon / 360.0).astype(int)
+        key = np.char.add(self.stn.astype(str), night.astype(str))
+        _, inv, counts = np.unique(key, return_inverse=True, return_counts=True)
+        factor = np.sqrt(np.maximum(counts[inv] / n0, 1.0))
+        new = self.select(np.arange(len(self)))
+        new.sig_ra = self.sig_ra * factor
+        new.sig_dec = self.sig_dec * factor
+        return new
+
+    def before(self, jd_utc, submitted=None):
+        """The observations available before a UTC Julian date.
+
+        By default this means observations *made* before that date. Observations often reach the
+        MPC days or weeks after they are made, so to reconstruct what was known at a given date,
+        pass `submitted`, an array of the UTC Julian dates at which each observation was submitted
+        (see submission_times); observations are then selected by submission time.
+        """
+        when = self.jd_utc if submitted is None else submitted
+        return self.select(np.where(when < jd_utc)[0])
+
     @property
     def weights(self):
         """Inverse variances (N, 2) in rad^-2 for (RA*cos Dec, Dec)."""
@@ -170,7 +200,25 @@ def from_ades(records, default_sigma=1.0, start=None, end=None):
         stn=np.array([o["stn"] for o in keep]),
         trk=np.array([o.get("trkid") or o.get("trksub") or f"{o['stn']}{o['obstime'][:10]}" for o in keep]),
         mag=f("mag", np.nan), band=np.array([o.get("band") or "" for o in keep]),
+        obsid=np.array([o.get("obsid") or "" for o in keep]),
     )
+
+
+def submission_times(obs, path):
+    """UTC Julian dates at which each observation was submitted to the MPC (NaN if unknown).
+
+    `path` is a CSV with columns obsid, submission_block_id, as exported from the MPC's
+    observation database (submission_block_id begins with the ISO time of the submission).
+    """
+    import csv
+    with open(path) as f:
+        when = {r["obsid"]: r["submission_block_id"].split("_")[0] for r in csv.DictReader(f)}
+    iso = [when.get(k) for k in obs.obsid]
+    out = np.full(len(obs), np.nan)
+    known = [i for i, v in enumerate(iso) if v]
+    if known:
+        out[known] = Time([iso[i] for i in known], format="isot", scale="utc").jd
+    return out
 
 
 # --- orbits --------------------------------------------------------------

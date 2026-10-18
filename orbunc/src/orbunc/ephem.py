@@ -104,8 +104,13 @@ def strikes_earth(states, t0, times, margin=1.05):
     return hit & np.nan_to_num(reach, nan=True).astype(bool)
 
 
-def _run(states, t0, times):
-    """Integrate in one direction through `times` (sorted away from t0); returns (len(times), N, 6)."""
+def _run(states, t0, times, check_dt=1.0, r_check=0.1):
+    """Integrate in one direction through `times` (sorted away from t0); returns (len(times), N, 6).
+
+    Every check_dt days, particles within r_check au of the Earth are tested with
+    strikes_earth over the next interval; those that would hit are removed from the run and
+    their later states are NaN.
+    """
     sim = rebound.Simulation()
     sim.t = t0
     for s in states:
@@ -115,14 +120,39 @@ def _run(states, t0, times):
     # near the Earth; "prs23" (Pham, Rein & Spiegel 2024) gives the same positions far faster.
     sim.ri_ias15.adaptive_mode = "prs23"
     n = len(states)
-    out = np.empty((len(times), n, 6))
+    alive = list(range(n))
+    out = np.full((len(times), n, 6), np.nan)
     xyz = np.empty((n, 3))
     vel = np.empty((n, 3))
+    sign = 1.0 if len(times) == 0 or times[-1] >= t0 else -1.0
+
+    def current():
+        m = len(alive)
+        sim.serialize_particle_data(xyz=xyz[:m], vxvyvz=vel[:m])
+        return np.concatenate([xyz[:m], vel[:m]], axis=1)
+
+    def remove_strikers(t_next):
+        X = current()
+        geo = np.linalg.norm(X[:, :3] - body_state("earth", sim.t)[0, :3], axis=1)
+        near = np.where(geo < r_check)[0]
+        if len(near):
+            hit = strikes_earth(X[near], sim.t, np.array([sim.t, t_next]))
+            for idx in sorted(near[hit], reverse=True):
+                sim.remove(index=int(idx))
+                del alive[idx]
+
     for k, t in enumerate(times):
+        while alive and sign * (t - sim.t) > check_dt:
+            remove_strikers(sim.t + sign * 1.5 * check_dt)
+            if alive:
+                sim.integrate(sim.t + sign * check_dt, exact_finish_time=0)
+        if not alive:
+            break
+        remove_strikers(float(t))
+        if not alive:
+            break
         sim.integrate(float(t))
-        sim.serialize_particle_data(xyz=xyz, vxvyvz=vel)
-        out[k, :, :3] = xyz
-        out[k, :, 3:] = vel
+        out[k, alive] = current()
     del extras
     return out
 

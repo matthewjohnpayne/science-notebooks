@@ -137,3 +137,20 @@ def spread_series(S, t_fit, x_mean, times, traj):
             res["along"][k], res["across"][k] = d.std(0)
         out[who] = res
     return out
+
+
+def sci_ticks(ax, axes="xy"):
+    """Label linear-axis ticks in scientific notation: 0, 10^3, -2x10^6, ..."""
+    import matplotlib.ticker as mt
+
+    def fmt(v, _):
+        if v == 0:
+            return "0"
+        e = int(np.floor(np.log10(abs(v)) + 1e-9))
+        m = v / 10 ** e
+        m_txt = "" if np.isclose(abs(m), 1) else (f"{abs(m):.1f}".rstrip("0").rstrip(".") + r"\times")
+        return f"${'-' if v < 0 else ''}{m_txt}10^{{{e}}}$"
+    for a in axes:
+        axis = ax.xaxis if a == "x" else ax.yaxis
+        axis.set_major_locator(mt.MaxNLocator(nbins=4, steps=[1, 2, 5, 10]))
+        axis.set_major_formatter(mt.FuncFormatter(fmt))

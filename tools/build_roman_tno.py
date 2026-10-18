@@ -211,7 +211,7 @@ The uncertainty falls steeply with the length of the arc, roughly as a high powe
 
 ## 4. The uncertainty from two vantage points
 
-Take the plutino-like object after a 14-day arc. Its orbit predicts a position at any time, with an uncertainty that is a three-dimensional cloud. Roman's data measure directions from Roman very well, but the distance from Roman less well: so the cloud is long and thin, pointing along Roman's line of sight. Figure 4 shows it at the end of the arc, side on, and face on from Roman and from the Earth.
+Take the plutino-like object after a 14-day arc. Its orbit predicts a position at any time, with an uncertainty that is a three-dimensional cloud. On the sky we describe it in two directions: *along-track*, along the object's apparent motion on the sky as seen by the observer, and *cross-track*, perpendicular to it. Roman's data measure directions from Roman very well, but the distance from Roman less well: so the cloud is long and thin, pointing along Roman's line of sight. Figure 4 shows it at the end of the arc, side on, and face on from Roman and from the Earth.
 """)
 
 code(r"""
@@ -222,8 +222,8 @@ sp = roman.spread(S, f.t, f.state, t_end, TRAJ)
 cR, cE = sp["Roman"]["cloud"], sp["Earth"]["cloud"]
 fig, axs = plt.subplots(1, 3, figsize=(14, 4.6))
 ax = axs[0]
-ax.scatter(cR[:, 2] / 1e3, cR[:, 0], s=2, color=roman.MUTED, alpha=0.4, lw=0, rasterized=True)
-L = np.abs(cR[:, 2]).max() / 1e3
+ax.scatter(cR[:, 2], cR[:, 0], s=2, color=roman.MUTED, alpha=0.4, lw=0, rasterized=True)
+L = np.abs(cR[:, 2]).max()
 oR, oE = roman.observer(TRAJ, t_end, "Roman")[0], roman.observer(TRAJ, t_end, "Earth")[0]
 base = (oR - oE) * KM
 FR = roman.apparent_frame(ephem.propagate(f.state[None], f.t, [t_end])[0, 0], t_end, oR, roman.observer(TRAJ, t_end + 0.01, "Roman")[0])[0]
@@ -231,20 +231,22 @@ dist_km = sp["Roman"]["dist_au"] * KM
 slope = (base @ FR[0]) / dist_km      # change of the Earth's sightline, along-track, per km along Roman's
 xs = np.array([-L, L])
 ax.plot(xs, 0 * xs, color=roman.ROMAN_C, lw=2, label="Roman's line of sight")
-ax.plot(xs, slope * xs * 1e3, color=roman.EARTH_C, lw=2, label="the Earth's line of sight")
-ax.set_xlabel("along Roman's line of sight (thousand km)")
+ax.plot(xs, slope * xs, color=roman.EARTH_C, lw=2, label="the Earth's line of sight")
+ax.set_xlabel("along Roman's line of sight (km)")
 ax.set_ylabel("along-track (km)")
 ax.legend(fontsize=8, frameon=False)
 ax.set_title("(a) side on (note the very different scales)", fontsize=10)
+roman.sci_ticks(ax)
 lim = 4 * max(sp["Earth"]["along"], sp["Earth"]["across"])
 for ax, who, c in [(axs[1], "Roman", roman.ROMAN_C), (axs[2], "Earth", roman.EARTH_C)]:
     d = sp[who]["cloud"]
     ax.scatter(d[:, 0], d[:, 1], s=2, color=c, alpha=0.4, lw=0, rasterized=True)
     ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
     ax.set_aspect("equal")
-    ax.set_xlabel("along the apparent motion (km)")
-    ax.set_ylabel("across it (km)")
+    ax.set_xlabel("along-track (km)")
+    ax.set_ylabel("cross-track (km)")
     ax.set_title(f"(c) seen from the Earth" if who == "Earth" else "(b) seen from Roman", fontsize=10)
+    roman.sci_ticks(ax)
 fig.suptitle(f"Figure 4. The {NAME} after a {ARC}-day Roman arc: its position uncertainty at the end of the arc", fontsize=11)
 plt.tight_layout()
 plt.show()
@@ -267,7 +269,7 @@ the baseline across the line of sight times the *fractional* uncertainty of the 
 
 For a stellar occultation the two directions on the sky play different roles. The asteroid's shadow sweeps across the observer's plane along the direction of the apparent motion, so an error **along** the motion only shifts the *time* of the event (by the error divided by the shadow's speed); an error **across** the motion shifts the *path*, and decides whether a given observer sees the event at all. A TNO a few hundred km across can be observed only if the path is known to a fraction of its size.
 
-Here is how both evolve over the 60 days after the end of 14- and 28-day arcs (beyond the end of the season, Roman can no longer observe the field, but predictions for the ground still matter), for observers at Roman and on the Earth (the Earth's centre; observers on its surface differ by at most its radius, negligible here). The table after the figure continues into the autumn season. Panel (a) shows the whole uncertainty, the major axis of the uncertainty ellipse on the sky, which does not depend on the direction of motion; (b) and (c) split it into the parts across and along the apparent motion.
+Here is how both evolve over the 60 days after the end of 14- and 28-day arcs (beyond the end of the season, Roman can no longer observe the field, but predictions for the ground still matter), for observers at Roman and on the Earth (the Earth's centre; observers on its surface differ by at most its radius, negligible here). The table after the figure continues into the autumn season. Panel (a) shows the whole uncertainty, the major axis of the uncertainty ellipse on the sky, which does not depend on the direction of motion; (b) and (c) split it into its cross-track and along-track parts.
 """)
 
 code(r"""
@@ -292,11 +294,11 @@ for row, arc in enumerate((14, 28)):
             axs[row, 0].plot(dates, r["major"], ls, color=c, lw=1.8, label=lab)
             axs[row, 1].plot(dates, r["across"], ls, color=c, lw=1.8)
             axs[row, 2].plot(dates, r["along"] / r["rate_km_s"], ls, color=c, lw=1.8)
-    for ax, lab in zip(axs[row], ["whole uncertainty: major axis (km)", "path: across the motion (km)", "timing: along the motion (s)"]):
+    for ax, lab in zip(axs[row], ["whole uncertainty: major axis (km)", "path: cross-track (km)", "timing: along-track / speed (s)"]):
         ax.set_yscale("log")
         ax.axvspan(*STATIONARY, color=roman.MUTED, alpha=0.2, lw=0)
         ax.set_ylabel(f"after a {arc}-day arc\n{lab}" if ax is axs[row, 0] else lab)
-for ax, title in zip(axs[0], ["(a) the whole uncertainty grows steadily", "(b) its share across the motion: the path", "(c) its share along the motion: the timing"]):
+for ax, title in zip(axs[0], ["(a) the whole uncertainty grows steadily", "(b) its cross-track part: the path", "(c) its along-track part: the timing"]):
     ax.set_title(title, fontsize=10)
 axs[0, 0].text(STATIONARY[0], axs[0, 0].get_ylim()[1] * 0.5, " stationary\n points", fontsize=8, color=roman.INK, va="top")
 axs[0, 0].legend(fontsize=7, frameon=False, ncol=2, loc="lower right")

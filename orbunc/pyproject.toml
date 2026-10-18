@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orbunc"
+version = "0.1.0"
+description = "Small toolkit for exploring orbital and on-sky uncertainty of minor planets (science-notebooks)"
+authors = [{name = "Matthew Payne"}]
+license = {text = "MIT"}
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.24", "astropy>=6.0", "rebound>=4.0", "assist>=1.1", "requests"]
+
+[project.optional-dependencies]
+digest2 = ["digest2>=2.8"]
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

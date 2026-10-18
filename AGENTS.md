@@ -16,3 +16,7 @@ This repository holds Matthew Payne's research-based Jupyter notebooks. His pers
    - Use numbered sections, a Summary, Going Further and References.
    - Offer a `QUICK` flag when a full run takes more than about a minute.
 6. Do not push to GitHub, or create the GitHub repository, without Matthew's go-ahead.
+
+## Orbital-uncertainty series
+
+The notebooks listed in `docs/orbit_uncertainty/PLAN.md` are an exception to "tied to a paper". They explore orbital and on-sky uncertainty (NEOCP tracklets, impact probability, impact corridors, occultations, Roman), share the toolkit in `orbunc/` (tests in `orbunc/tests`), and may later move to `generic_mpcsoftware_dev/mpc-research`. Keep `orbunc` self-contained, keep PLAN.md up to date, and re-run the tests after changing it.

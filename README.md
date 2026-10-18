@@ -32,6 +32,7 @@ and a row to that area's page in `book/` (with the paper and, if there is one, t
 | [Planet Nine and the Cassini ranging data](notebooks/cassini_planet9/cassini_planet9.ipynb) | Holman & Payne (2016), AJ 152, 94 | Under a minute |
 | [Planet Nine and the secular dynamics of distant TNOs](notebooks/planet_nine/planet_nine.ipynb) | Li, Hadden, Payne & Holman (2018), AJ 156, 263 | A few minutes from the cached results in `cache/`; about 30 h on 12 cores to recompute; `QUICK = True` is a short test of the code |
 | [2010 JO179: a dwarf planet in the 21:5 resonance with Neptune](notebooks/jo179_resonance/jo179_resonance.ipynb) | Holman, Payne, Fraser et al. (2018), ApJL 855, L6 | Seconds from the cached results in `cache/`; about 2 h on 12 cores to recompute; a few minutes with `QUICK = True` |
+| [What does a new asteroid's first night tell us? Orbits from one, two and three tracklets](notebooks/neocp_uncertainty/neocp_uncertainty.ipynb) | Orbital-uncertainty series (not tied to a single paper); uses the `orbunc` toolkit | About 10 minutes; about 5 minutes with `QUICK = True`. Needs the ASSIST ephemerides (see below) |
 
 ## Running
 
@@ -41,7 +42,11 @@ pip install -r requirements.txt
 jupyter lab notebooks/resonance_overlap/resonance_overlap.ipynb
 ```
 
-Each notebook lives in its own folder with any helper module it imports. The notebooks are committed with their outputs, so they can be read on GitHub without running them.
+Each notebook lives in its own folder with any helper module it imports.
+
+### The orbital-uncertainty series and `orbunc`
+
+The notebooks on orbital uncertainty (plan and status in `docs/orbit_uncertainty/PLAN.md`) share a small toolkit, [`orbunc/`](orbunc/README.md), installed by `requirements.txt` (or `pip install -e ./orbunc` for development). It propagates orbits with [ASSIST](https://github.com/matthewholman/assist), which needs two JPL ephemeris files (about 720 MB): set `ASSIST_DIR` to a folder containing `linux_p1550p2650.440` and `sb441-n16.bsp`, or let `orbunc` download them to `~/.orbunc` on first use. Observations and orbits come from the MPC's public APIs and are cached in each notebook's `data/` folder. Tests: `python -m pytest orbunc/tests`. The notebooks are committed with their outputs, so they can be read on GitHub without running them.
 
 ## Editing
 

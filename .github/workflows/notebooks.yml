@@ -51,6 +51,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip freeze | grep -iE '^(numpy|scipy|matplotlib|rebound|mpc.orb|requests|nbclient)=' || true
+      - name: Cache the ASSIST ephemerides used by orbunc (about 720 MB)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9   # v6.1.0
+        with:
+          path: ~/.orbunc
+          key: orbunc-de440-sb441-n16
       - name: Execute ${{ matrix.notebook }}
         run: python tools/ci_execute.py "notebooks/${{ matrix.notebook }}/${{ matrix.notebook }}.ipynb" --quick --timeout 4800 --error-file "$RUNNER_TEMP/error.txt"
       - name: Open or update the issue

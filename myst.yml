@@ -18,6 +18,8 @@ project:
     - '**/cache_quick/**'
     - '**/data/**'
     - tools/**
+    - docs/**
+    - orbunc/**
     - README.md
     - AGENTS.md
     - .claude/**
@@ -43,6 +45,9 @@ project:
         - file: notebooks/heliolinc/heliolinc.ipynb
         - file: notebooks/iso_lsst/iso_lsst.ipynb
         - file: notebooks/shift_and_stack/shift_and_stack.ipynb
+    - file: book/orbit-uncertainty.md
+      children:
+        - file: notebooks/neocp_uncertainty/neocp_uncertainty.ipynb
 site:
   template: book-theme
   title: Science notebooks · Matthew Payne

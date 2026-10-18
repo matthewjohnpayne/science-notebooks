@@ -8,3 +8,7 @@ jupyterlab
 nbformat
 nbclient
 ipykernel
+astropy>=6.0
+assist>=1.1
+digest2>=2.8
+./orbunc

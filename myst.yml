@@ -48,6 +48,7 @@ project:
     - file: book/orbit-uncertainty.md
       children:
         - file: notebooks/neocp_uncertainty/neocp_uncertainty.ipynb
+        - file: notebooks/impact_probability/impact_probability.ipynb
 site:
   template: book-theme
   title: Science notebooks · Matthew Payne

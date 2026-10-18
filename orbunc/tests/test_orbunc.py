@@ -157,3 +157,13 @@ def test_with_floor():
     f = o.with_floor(0.2)
     assert f.sig_ra.tolist() == [0.2, 0.3, 1.0] and f.sig_dec.tolist() == [0.2, 0.2, 2.0]
     assert o.sig_ra[0] == 0.05   # the original is unchanged
+
+
+def test_submission_time_from_obsid():
+    """Decoded submission times match the MPC's submission_block_id for the same observations."""
+    from astropy.time import Time
+    for obsid, iso in [("Llv7bTFW0000GVfI010000001", "2024-12-27T08:07:11.962"),
+                       ("Lmt722000000Gg2M010000001", "2025-02-25T07:30:34.000"),
+                       ("LuBIjL0J0000Bwvd010000001", "2026-05-12T20:00:03.019")]:
+        assert abs(mpc.submission_time_from_obsid(obsid) - Time(iso, scale="utc").jd) < 1e-8
+    assert np.isnan(mpc.submission_time_from_obsid("00000000_00_000000a"))

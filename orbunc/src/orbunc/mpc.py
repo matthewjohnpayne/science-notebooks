@@ -163,8 +163,8 @@ class Observations:
 
         By default this means observations *made* before that date. Observations often reach the
         MPC days or weeks after they are made, so to reconstruct what was known at a given date,
-        pass `submitted`, an array of the UTC Julian dates at which each observation was submitted
-        (see submission_times); observations are then selected by submission time.
+        pass `submitted`, the UTC Julian dates at which each observation was submitted (from
+        submission_times); observations are then selected by submission time.
         """
         when = self.jd_utc if submitted is None else submitted
         return self.select(np.where(when < jd_utc)[0])
@@ -204,21 +204,33 @@ def from_ades(records, default_sigma=1.0, start=None, end=None):
     )
 
 
-def submission_times(obs, path):
-    """UTC Julian dates at which each observation was submitted to the MPC (NaN if unknown).
+B62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
-    `path` is a CSV with columns obsid, submission_block_id, as exported from the MPC's
-    observation database (submission_block_id begins with the ISO time of the submission).
+
+def submission_time_from_obsid(obsid):
+    """UTC Julian date at which an observation was submitted, decoded from its 25-character obsid.
+
+    The MPC builds an obsid from the submission time: base-62 encodings of the date number
+    ((year - 1800) * 12 + month - 1) * 31 + day - 1 (3 characters), the seconds of the day
+    (3 characters) and the milliseconds (2 characters), then the submission and block numbers
+    and the observation's sequence number (see `obsid_prefix_for_block` in the MPC's ingest
+    code). The MPC describes these identifiers as opaque, so this decoding holds for current
+    obsids but is not guaranteed for the future. Returns NaN for other formats.
     """
-    import csv
-    with open(path) as f:
-        when = {r["obsid"]: r["submission_block_id"].split("_")[0] for r in csv.DictReader(f)}
-    iso = [when.get(k) for k in obs.obsid]
-    out = np.full(len(obs), np.nan)
-    known = [i for i, v in enumerate(iso) if v]
-    if known:
-        out[known] = Time([iso[i] for i in known], format="isot", scale="utc").jd
-    return out
+    if not obsid or len(obsid) != 25 or any(c not in B62 for c in obsid[:8]):
+        return np.nan
+    b62 = lambda s: sum(B62.index(c) * 62 ** k for k, c in enumerate(reversed(s)))
+    y, rem = divmod(b62(obsid[:3]), 12 * 31)
+    m, d = divmod(rem, 31)
+    if not (1 <= m + 1 <= 12 and 1 <= d + 1 <= 31):
+        return np.nan
+    t = Time(f"{1800 + y:04d}-{m + 1:02d}-{d + 1:02d}T00:00:00", scale="utc")
+    return t.jd + (b62(obsid[3:6]) + b62(obsid[6:8]) / 1000) / 86400
+
+
+def submission_times(obs):
+    """UTC Julian dates at which each observation was submitted to the MPC (NaN if unknown)."""
+    return np.array([submission_time_from_obsid(str(k)) for k in obs.obsid])
 
 
 # --- orbits --------------------------------------------------------------

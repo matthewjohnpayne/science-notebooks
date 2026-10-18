@@ -56,6 +56,15 @@ These follow the repository's AGENTS.md:
 - ASSIST ephemerides go in `$ASSIST_DIR`, or are downloaded to `~/.orbunc`.
 - The figure palette was validated for colour-blind safety: categorical #2a78d6, #eb6834, #1baf7a, with direct labels or legends.
 
+## To do in `neocp_uncertainty` (Matthew, 2026-10-18)
+
+- **Open Section 6.1 with a simple diagram of a tracklet on the sky:** a few positions moving across a star field over an hour, with the fitted rate of motion, before introducing the line of sight. This tells the reader what a "tracklet" is.
+- **Bring back the whole-orbit "spray"** (old Figure 7b, orbits consistent with one tracklet), tied explicitly to the line-of-sight view (Figure 8a):
+  - use the same sampled orbits and the same colouring by distance along the ray;
+  - mark each orbit's crossing point on the ray, so each full orbit can be traced back to where it meets the line of sight;
+  - for example, side-by-side panels with shared colours, or the full orbits drawn faintly behind the ray and arcs.
+- **Cosmetic, Figure 8:** the legend in (c) overlaps some points, and (c)'s title crowds (a)'s x-axis label.
+
 ## Further directions (Matthew, 2026-10-18; not started)
 
 These are possible additions to the NEO/NEOCP side of the project.

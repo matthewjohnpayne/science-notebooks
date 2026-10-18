@@ -70,6 +70,26 @@ def fit_orbit_robust(state, t, obs, chi2_reject=8.0, chi2_recover=7.0, max_round
     return f
 
 
+def update(state, cov, t, obs, h=(1e-8, 1e-10)):
+    """Linear (Kalman) update of a Gaussian orbit estimate (state, cov at time t) with new astrometry.
+
+    The new observations, with their full 2x2 covariances, are linearised about `state`:
+    posterior information = prior information + J^T J (J the whitened Jacobian), and the state moves
+    by the corresponding Gauss-Newton step. Equivalent to refitting all the data when the
+    uncertainties are small enough for the linear approximation, which they are for a numbered
+    asteroid; it lets the prior be any covariance (for example an inflated one).
+    Returns (posterior state, posterior covariance).
+    """
+    step = np.array([h[0]] * 3 + [h[1]] * 3)
+    X = np.vstack([state] + [state + step[k] * np.eye(6)[k] for k in range(6)]
+                  + [state - step[k] * np.eye(6)[k] for k in range(6)])
+    res = obs.whiten(residuals(X, t, obs)).reshape(13, -1)
+    J = -(res[1:7] - res[7:13]).T / (2 * step)
+    info = np.linalg.inv(cov) + J.T @ J
+    post = np.linalg.inv(info)
+    return state + post @ (J.T @ res[0]), post
+
+
 def sample_gaussian(fit, n, rng):
     """n orbits drawn from the linearised (Gaussian) uncertainty of a fit."""
     return rng.multivariate_normal(fit.state, fit.cov, size=n)

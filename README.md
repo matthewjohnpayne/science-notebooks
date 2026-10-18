@@ -34,6 +34,7 @@ and a row to that area's page in `book/` (with the paper and, if there is one, t
 | [2010 JO179: a dwarf planet in the 21:5 resonance with Neptune](notebooks/jo179_resonance/jo179_resonance.ipynb) | Holman, Payne, Fraser et al. (2018), ApJL 855, L6 | Seconds from the cached results in `cache/`; about 2 h on 12 cores to recompute; a few minutes with `QUICK = True` |
 | [What does a new asteroid's first night tell us? Orbits from one, two and three tracklets](notebooks/neocp_uncertainty/neocp_uncertainty.ipynb) | Orbital-uncertainty series (not tied to a single paper); uses the `orbunc` toolkit | About 10 minutes; about 5 minutes with `QUICK = True`. Needs the ASSIST ephemerides (see below) |
 | [Why did 2024 YR4's impact probability rise before it fell?](notebooks/impact_probability/impact_probability.ipynb) | Orbital-uncertainty series; uses the `orbunc` toolkit | About a minute from the cached results in `cache/`; about 45 minutes to recompute; a few minutes with `QUICK = True` |
+| [What does a stellar occultation do to an asteroid's orbit?](notebooks/occultations/occultations.ipynb) | Orbital-uncertainty series; uses the `orbunc` toolkit | About five minutes; a few minutes with `QUICK = True` |
 
 ## Running
 

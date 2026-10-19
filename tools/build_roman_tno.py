@@ -408,27 +408,51 @@ for name, v in speeds.items():
 md(r"""
 The shadow moves at about 2 to 22 km/s, slowest at the stationary point, so a 100-km TNO hides a star for 5 to 40 s and a 300-km one for up to about two minutes. For an event at a random moment the chance that it overlaps one of the field's exposures is roughly one in ten, more for the larger, longer events (printed above); and an event shorter than an exposure dims the star only by the fraction of the exposure it lasts. (Each exposure is read several times as it accumulates, which gives some time resolution within it.) Events near the stationary point are the best: the longest, so the most likely to be caught and the deepest.
 
-Now the width. Figure 7 shows the probability that the star is occulted as seen by the observer, as a function of how far the *predicted* centre line of the shadow passes from it, for the plutino-like object with the cross-track uncertainties at the end of a 14- and a 28-day arc. When the uncertainty is small compared with the object, the prediction is sharp: a star within the object's radius of the predicted line is almost certainly occulted, one well outside it almost certainly not. When it is comparable with the object or larger, the prediction blurs into a modest probability spread over a wider band.
+Now the width. Figure 7 shows the probability that the star is occulted as seen by the observer, as a function of how far the *predicted* centre line of the shadow passes from it, for plutino-like objects 10, 30, 100 and 300 km across, with the path uncertainties at the end of a 14-day, a 28-day and a full 70-day arc. A smaller object at the same distance is also fainter (we assume the same albedo, so each factor of 10 in size is 5 magnitudes), so its positions are less precise, and so is its orbit. Roman will find such faint objects by shift-and-stack, adding up many exposures along trial paths (see the [shift-and-stack notebook](../shift_and_stack/shift_and_stack.ipynb)); a Roman Cycle 1 programme plans to search the survey's first three seasons for about 1000 Kuiper Belt objects to F146 = 28 (programme 19019, PI K. Napier). When the noise is dominated by the sky background, adding exposures together carries the same information about the position as measuring them separately, so the orbit's uncertainties simply scale with the per-exposure precision; that is how the faint cases here are computed. When the path uncertainty is small compared with the object, the prediction is sharp: a star within the object's radius of the predicted line is almost certainly occulted, one well outside it almost certainly not. When it is comparable with the object or larger, the prediction blurs into a small probability spread over a wide band.
 """)
 
 code(r"""
-fig, axs = plt.subplots(1, 2, figsize=(12, 4.2), sharey=True)
-off = np.linspace(-400, 400, 801)
-for ax, R in zip(axs, (50, 150)):
-    for arc, ls in ((14, "-"), (28, "--")):
-        sp = rows[("plutino, 39 au", arc)][0]
+SIZES = [10, 30, 100, 300]                                   # diameters (km)
+mag_of = lambda D: MAG + 5 * np.log10(100 / D)              # same distance and albedo as the 100-km reference
+end_sig = {}
+for arc in (14, 28, 70):
+    O, f, S = fits[("plutino, 39 au", arc)]
+    sp = roman.spread(S, f.t, f.state, O.t[-1], TRAJ)
+    end_sig[arc] = {who: sp[who]["across"] for who in ("Roman", "Earth")}
+
+fig, axs = plt.subplots(1, 4, figsize=(17, 4.4), sharey=True)
+for ax, D, lim in zip(axs, SIZES, (60, 150, 300, 500)):
+    R = D / 2
+    scale = roman.precision_mas(mag_of(D)) / SIG_EXP          # uncertainties scale with the measurement errors
+    off = np.linspace(-lim, lim, 1001)
+    for arc, ls in ((14, ":"), (28, "--"), (70, "-")):
         for who, c in (("Roman", roman.ROMAN_C), ("Earth", roman.EARTH_C)):
-            sig = sp[who]["across"]
-            ax.plot(off, roman.occultation_probability(off, R, sig), ls, color=c, lw=2,
-                    label=f"{who}, {arc}-day arc (1-sigma {sig:.0f} km)")
+            ax.plot(off, roman.occultation_probability(off, R, end_sig[arc][who] * scale), ls, color=c, lw=2,
+                    label=f"{who}, {arc}-day arc")
     ax.axvspan(-R, R, color=roman.MUTED, alpha=0.15, lw=0)
-    ax.set_xlabel("distance of the star from the predicted centre line (km)")
-    ax.set_title(f"a TNO {2 * R} km across (shaded: its width)", fontsize=10)
+    ax.set_xlim(-lim, lim)
+    ax.set_xlabel("star's distance from the predicted centre line (km)", fontsize=9)
+    ax.set_title(f"{D} km across: F146 = {mag_of(D):.1f}, {roman.precision_mas(mag_of(D)):.0f} mas per exposure", fontsize=9)
 axs[0].set_ylabel("probability that the star is occulted")
-axs[0].legend(fontsize=8, frameon=False, loc="upper left")
-fig.suptitle("Figure 7. Will the star be occulted? Predictions at the end of the arc, for the plutino-like object", fontsize=11)
+axs[-1].legend(fontsize=7, frameon=False, loc="upper right")
+fig.suptitle("Figure 7. Will the star be occulted? Predictions at the end of the arc for plutino-like objects of four sizes (shaded: the object's width)", fontsize=11)
 plt.tight_layout()
 plt.show()
+
+print(f"{'size':>6s} {'F146':>5s} {'mas/exp':>8s}   path uncertainty at the end of the arc (km) and the chance a star on the predicted centre line is occulted")
+for D in SIZES:
+    scale = roman.precision_mas(mag_of(D)) / SIG_EXP
+    cells = []
+    for arc in (14, 28, 70):
+        for who in ("Roman", "Earth"):
+            sig = end_sig[arc][who] * scale
+            cells.append(f"{who[0]}{arc}: {sig:7,.0f} km {roman.occultation_probability(0.0, D / 2, sig):4.0%}")
+    print(f"{D:4d} km {mag_of(D):5.1f} {roman.precision_mas(mag_of(D)):8.0f}   " + " | ".join(cells))
+print("(R = for Roman, E = for the Earth; 14, 28, 70 = length of the arc in days)")
+""")
+
+md(r"""
+Size matters more than anything else here. For objects of 100 km and more, a few weeks of Roman data predict the path for Roman to a fraction of the object's size, and the full season does so for the ground as well. At 30 km (F146 about 26.6, below the single-exposure limit, so found only by stacking), the path uncertainty is several times the object's size even after the full season, and a star on the predicted centre line has a probability of only about 10% of being occulted. At 10 km the path is uncertain by hundreds to thousands of km: Roman may *detect* such objects by stacking, but one season does not predict their occultations. Smaller objects need longer arcs (several seasons), or must be closer or more reflective than assumed here; a Centaur at 15 au, for instance, is about four magnitudes brighter than the same object at 40 au.
 """)
 
 md(r"""
@@ -472,6 +496,7 @@ The two tracks are about a minute of arc apart, while the path uncertainties, a 
 * From part of a 70-day stare, Roman's milliarcsecond astrometry determines a TNO's semi-major axis to $\sigma_a/a \sim 10^{-3}$ in two to four weeks (for objects of about F146 = 24), and the full season to $\sim 10^{-5}$. Nearer objects need shorter arcs.
 * The resulting uncertainty is a long, thin cloud along Roman's line of sight. Roman sees it end on; observers on the Earth, 1.5 million km away and largely across the line of sight, see part of its length: an extra spread of about $B_\perp\,\sigma_\rho/\rho$, a few hundred km after two weeks, independent of the object's distance.
 * For occultation predictions, the path stays within a few hundred km for two months after a 28-day arc but degrades within a week or two after a 14-day one; timing uncertainties grow from seconds to minutes; and the five-month gap between seasons is the main obstacle for any arc short of the full season. Near the stationary points, which fall in the spring season because the bulge is observed near quadrature, the long axis of the uncertainty turns across the motion and the path uncertainty peaks.
+* Small objects are the hard case: at 40 au, a 30-km TNO (F146 about 26.6, found only by stacking) has a path uncertainty of order 100 km even after the full season, and a 10-km one of hundreds of km or more; their occultations cannot be predicted from one season.
 * For an occultation seen by Roman itself, only the path decides whether it happens, and Roman's narrow path uncertainty makes that prediction sharp; but the shadow passes in seconds to minutes, so Roman's fixed 12.1-minute cycle catches only about one event in ten, best near the stationary point where the shadow is slowest. From the ground the object follows a different track, about a minute of arc away, with a wider path uncertainty and a timing window to cover: a harder prediction.
 
 ## 7. Going further

@@ -242,7 +242,7 @@ McKinnon & van der Marel (2026, PASP 138, 044507; ADS `2026PASP..138d4507M`) put
 - **Benecchi, S. D., Porter, S. B., Verbiscer, A. J., et al. 2025**, "Characterization of the Deep, Extended Kuiper Belt in the Galactic Disk", arXiv:2503.02909, `2025arXiv250302909B`. [V]
   - A Roman survey white paper aimed at the New Horizons search region, with up to about 900 KBOs. It is not part of the GBTDS.
 - **Roman Cycle 1 approved program 19019**, "An Archival Deep Drilling Kuiper Belt Search in the Galactic Bulge Time Domain Survey", PI Kevin Napier (CfA). https://roman.ipac.caltech.edu/cycle1-approved-programs/19019 [V]
-  - Aims for about 1000 KBOs to F146 = 28.0 in the first three seasons, via shift-and-stack.
+  - Aims for about 1000 KBOs to F146 = 28.0 in the first three seasons. (Correction, 2026-10-18: the programme page does not say the search uses shift-and-stack; it says only that it will mine the public GBTDS images.)
   - Says the field sits at "ecliptic latitude of 5–6 degrees".
   - Pike's slides list a second Cycle 1 small-body program: "Recovering NEO Streaks from Roman WFI Data for Planetary Defense", PI Arturo Sasli (Program ID 19035 per the slides). [V as stated on slides]
 - **ROTAC GBTDS white papers** (Appendix C.3 table, no refereed version found) [V as listed]:

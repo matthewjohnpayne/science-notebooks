@@ -154,3 +154,45 @@ def sci_ticks(ax, axes="xy"):
         axis = ax.xaxis if a == "x" else ax.yaxis
         axis.set_major_locator(mt.MaxNLocator(nbins=4, steps=[1, 2, 5, 10]))
         axis.set_major_formatter(mt.FuncFormatter(fmt))
+
+
+EXPOSURE_S = 66.9                            # F146 exposure (ROTAC 2025)
+CADENCE_S = CADENCE_MIN * 60
+
+
+def shadow_speed_km_s(x, t_x, times, traj, who):
+    """Speed (km/s) of an object's shadow across the observer, i.e. its apparent motion on the sky
+    times its distance, from the orbit x (state at t_x), at TDB times."""
+    times = np.asarray(times, float)
+    P = ephem.propagate(x[None], t_x, np.r_[times, times + 0.01])[:, 0, :3]
+    o = observer(traj, np.r_[times, times + 0.01], who)
+    v0, v1 = P[:len(times)] - o[:len(times)], P[len(times):] - o[len(times):]
+    u0 = v0 / np.linalg.norm(v0, axis=1)[:, None]
+    rel = v1 - v0
+    perp = rel - np.sum(rel * u0, 1)[:, None] * u0
+    return np.linalg.norm(perp, axis=1) * KM / 864.0
+
+
+def capture_probability(duration_s):
+    """Chance that an event of the given duration overlaps one of the field's exposures, for an event
+    at a random time: (exposure + duration) / cadence, capped at 1."""
+    return np.minimum((EXPOSURE_S + np.asarray(duration_s)) / CADENCE_S, 1.0)
+
+
+def occultation_probability(offset_km, radius_km, sigma_km):
+    """Probability that the star is occulted (as seen by the observer) when the predicted centre line
+    passes offset_km from it, for an object of radius_km and a Gaussian cross-track uncertainty."""
+    from scipy.stats import norm
+    return norm.cdf((offset_km + radius_km) / sigma_km) - norm.cdf((offset_km - radius_km) / sigma_km)
+
+
+def sky_track(x, t_x, times, traj, who, ref=None):
+    """Directions (RA, Dec, radians) of the object seen from `who` at TDB times; optionally offsets
+    (arcsec, east and north) from reference directions ref = (ra, dec)."""
+    P = ephem.propagate(x[None], t_x, times)[:, 0, :3] - observer(traj, times, who)
+    ra, dec = frames.unit_to_radec(P)
+    if ref is None:
+        return ra, dec
+    from orbunc import sky
+    e, n = sky.offsets(ra, dec, ref[0], ref[1])
+    return e, n

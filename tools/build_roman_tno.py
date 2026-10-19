@@ -336,11 +336,143 @@ What stands out:
 * **Timing uncertainties are seconds at first and minutes within a month.** A timing uncertainty can be covered by observing for longer; a path uncertainty cannot.
 * **The gap between seasons is the real limit.** By the autumn season, five months later, the paths from a 14-day arc are uncertain by tens of thousands of km, and from a 28-day arc by thousands, from either vantage point. Only the full season's data (printed above) carry a TNO's path into the next season, with an uncertainty of one to a few hundred km.
 
+### 5.1 Occultations seen by Roman itself
+
+Suppose a TNO measured by Roman is predicted to pass close to a star in the same field, and the question is whether Roman will see the star disappear. Two things decide it.
+
+**Whether the star is occulted at all** depends only on the cross-track uncertainty: the shadow passes over Roman or it does not. The timing hardly matters here, because Roman does not choose when to look: the survey images each field on a fixed 12.1-minute cycle whatever the prediction says.
+
+**Whether Roman records it** depends on that cycle. The star is imaged only during the 66.9-s exposures, about 9% of the time. An occultation lasts as long as the object's shadow takes to pass: its diameter divided by the shadow's speed, which is the object's apparent motion on the sky times its distance. Figure 6 shows the shadow speed through the season for each object (a), the resulting durations for TNOs 100 and 300 km across (b), and what an event looks like against Roman's exposures (c).
+""")
+
+code(r"""
+season_t = Time(roman.SPRING_2027[0], scale="utc").tdb.jd + np.arange(0, 71, 0.5) - JD
+season_d = Time(season_t + JD, format="jd", scale="tdb").datetime
+fig, axs = plt.subplots(1, 3, figsize=(15, 4.3))
+speeds = {}
+for (name, x), c in zip(truth.items(), roman.COLOURS):
+    v = roman.shadow_speed_km_s(x, T_MID, season_t, TRAJ, "Roman")
+    speeds[name] = v
+    axs[0].plot(season_d, v, color=c, lw=2, label=name)
+for D, ls in ((100, "-"), (300, "--")):
+    for (name, v), c in zip(speeds.items(), roman.COLOURS):
+        if name.startswith("Centaur"):
+            continue
+        axs[1].plot(season_d, D / v, ls, color=c, lw=2, label=name if D == 100 else None)
+axs[1].axhline(roman.EXPOSURE_S, color=roman.INK, lw=1, ls=":")
+axs[1].text(season_d[2], roman.EXPOSURE_S * 0.85, "one exposure (66.9 s)", fontsize=8, va="top")
+for ax in axs[:2]:
+    ax.axvspan(*STATIONARY, color=roman.MUTED, alpha=0.2, lw=0)
+    ax.set_yscale("log")
+    for lab in ax.get_xticklabels():
+        lab.set_rotation(30); lab.set_ha("right")
+axs[0].set_ylabel("shadow speed across Roman (km/s)")
+axs[1].set_ylabel("duration of a central occultation (s)")
+axs[0].legend(fontsize=8, frameon=False)
+axs[1].legend(fontsize=8, frameon=False, loc="upper left", title="solid: 100 km across\ndashed: 300 km", title_fontsize=8)
+axs[0].set_title("(a) the shadow is slowest at the stationary point", fontsize=10)
+axs[1].set_title("(b) how long the star disappears (TNOs)", fontsize=10)
+
+ax = axs[2]
+tline = np.linspace(0, 3 * roman.CADENCE_S, 6000)
+exposing = (tline % roman.CADENCE_S) < roman.EXPOSURE_S
+ax.fill_between(tline / 60, 0, 1.15, where=exposing, color=roman.ROMAN_C, alpha=0.25, lw=0, label="Roman exposing this field")
+events = [(0.45 * roman.CADENCE_S, 40, "a 40-s event between exposures: missed", 0.30),
+          (roman.CADENCE_S + 15, 40, "a 40-s event during an exposure: caught", 0.55),
+          (2 * roman.CADENCE_S + 30, 5, "a 5-s event during an exposure: a 7% dip", 0.80)]
+flux = np.ones_like(tline)
+for t0, dur, lab, y in events:
+    flux[(tline >= t0) & (tline < t0 + dur)] = 0.0
+    ax.annotate(lab, ((t0 + dur / 2) / 60, 0.02), xytext=(t0 / 60 - 4, y), fontsize=7,
+                arrowprops=dict(arrowstyle="-", color=roman.MUTED, lw=0.8))
+ax.plot(tline / 60, flux, color=roman.INK, lw=1)
+ax.set_ylim(-0.05, 1.2)
+ax.set_xlabel("time (minutes)")
+ax.set_ylabel("star's brightness")
+ax.legend(fontsize=7, frameon=False, loc="lower right")
+ax.set_title("(c) occultations against Roman's 12.1-minute cycle", fontsize=10)
+fig.suptitle("Figure 6. Catching an occultation from Roman", fontsize=11)
+plt.tight_layout()
+plt.show()
+
+for name, v in speeds.items():
+    if name.startswith("Centaur"):
+        continue
+    d100, d300 = 100 / v, 300 / v
+    print(f"{name:22s}: shadow {v.min():.1f} to {v.max():.1f} km/s; a 100-km TNO occults for {d100.min():.0f} to {d100.max():.0f} s, "
+          f"a 300-km one for {d300.min():.0f} to {d300.max():.0f} s; chance of overlapping an exposure "
+          f"{roman.capture_probability(d100).min():.0%}-{roman.capture_probability(d100).max():.0%} (100 km), "
+          f"{roman.capture_probability(d300).min():.0%}-{roman.capture_probability(d300).max():.0%} (300 km)")
+""")
+
+md(r"""
+The shadow moves at about 2 to 22 km/s, slowest at the stationary point, so a 100-km TNO hides a star for 5 to 40 s and a 300-km one for up to about two minutes. For an event at a random moment the chance that it overlaps one of the field's exposures is roughly one in ten, more for the larger, longer events (printed above); and an event shorter than an exposure dims the star only by the fraction of the exposure it lasts. (Each exposure is read several times as it accumulates, which gives some time resolution within it.) Events near the stationary point are the best: the longest, so the most likely to be caught and the deepest.
+
+Now the width. Figure 7 shows the probability that the star is occulted as seen by the observer, as a function of how far the *predicted* centre line of the shadow passes from it, for the plutino-like object with the cross-track uncertainties at the end of a 14- and a 28-day arc. When the uncertainty is small compared with the object, the prediction is sharp: a star within the object's radius of the predicted line is almost certainly occulted, one well outside it almost certainly not. When it is comparable with the object or larger, the prediction blurs into a modest probability spread over a wider band.
+""")
+
+code(r"""
+fig, axs = plt.subplots(1, 2, figsize=(12, 4.2), sharey=True)
+off = np.linspace(-400, 400, 801)
+for ax, R in zip(axs, (50, 150)):
+    for arc, ls in ((14, "-"), (28, "--")):
+        sp = rows[("plutino, 39 au", arc)][0]
+        for who, c in (("Roman", roman.ROMAN_C), ("Earth", roman.EARTH_C)):
+            sig = sp[who]["across"]
+            ax.plot(off, roman.occultation_probability(off, R, sig), ls, color=c, lw=2,
+                    label=f"{who}, {arc}-day arc (1-sigma {sig:.0f} km)")
+    ax.axvspan(-R, R, color=roman.MUTED, alpha=0.15, lw=0)
+    ax.set_xlabel("distance of the star from the predicted centre line (km)")
+    ax.set_title(f"a TNO {2 * R} km across (shaded: its width)", fontsize=10)
+axs[0].set_ylabel("probability that the star is occulted")
+axs[0].legend(fontsize=8, frameon=False, loc="upper left")
+fig.suptitle("Figure 7. Will the star be occulted? Predictions at the end of the arc, for the plutino-like object", fontsize=11)
+plt.tight_layout()
+plt.show()
+""")
+
+md(r"""
+### 5.2 Seen from the ground: a different track
+
+From the ground the problem changes in two ways. The first is Section 4's: the path is less certain, because the Earth sees part of the long axis of the uncertainty cloud. The second is more basic. The same parallax shifts the object's whole track on the sky: from about 1.6 million km away, a TNO at 39 au appears displaced by roughly a minute of arc. So a star that Roman sees occulted is generally *not* occulted as seen from the Earth, or not at the same time; ground-based predictions concern the stars along the Earth's own track. Figure 8 shows both tracks, a week after the end of a 14-day arc.
+""")
+
+code(r"""
+O, f, S = fits[("plutino, 39 au", 14)]
+t_c = O.t[-1] + 7
+tt = t_c + np.linspace(-2, 2, 81)
+ref = roman.sky_track(f.state, f.t, np.array([t_c]), TRAJ, "Roman")
+ss = roman.spread_series(S, f.t, f.state, tt, TRAJ)
+fig, ax = plt.subplots(figsize=(9, 5.5))
+for who, c in (("Roman", roman.ROMAN_C), ("Earth", roman.EARTH_C)):
+    e, n = roman.sky_track(f.state, f.t, tt, TRAJ, who, ref=(ref[0][0], ref[1][0]))
+    dist_km = np.linalg.norm(ephem.propagate(f.state[None], f.t, tt)[:, 0, :3] - roman.observer(TRAJ, tt, who), axis=1) * KM
+    sig_km = np.median(ss[who]["across"])
+    sig_as = sig_km / np.median(dist_km) / frames.ARCSEC
+    ax.plot(e, n, color=c, lw=1.5, label=f"seen from {who}: path uncertainty {sig_km:.0f} km = {sig_as:.3f} arcsec (1 sigma)")
+    ax.plot(e[40], n[40], "o", color=c, ms=5)
+ax.plot(0, 0, marker="*", color=roman.INK, ms=13, ls="none", label="a star occulted as seen from Roman")
+ax.invert_xaxis()
+ax.set_aspect("equal", adjustable="datalim")
+ax.set_xlabel("east offset (arcsec)")
+ax.set_ylabel("north offset (arcsec)")
+ax.legend(fontsize=8, frameon=False, loc="best")
+ax.set_title(f"Figure 8. The plutino-like object's track over 4 days around {Time(t_c + JD, format='jd', scale='tdb').utc.iso[:10]},\n"
+             "seen from Roman and from the Earth (dots: the same moment); the path uncertainties are far too narrow to draw", fontsize=10)
+plt.show()
+e, n = roman.sky_track(f.state, f.t, np.array([t_c]), TRAJ, "Earth", ref=(ref[0][0], ref[1][0]))
+print(f"at the same moment the object appears {np.hypot(e[0], n[0]):.0f} arcsec apart as seen from Roman and from the Earth")
+""")
+
+md(r"""
+The two tracks are about a minute of arc apart, while the path uncertainties, a few hundred km, are a few thousandths of an arcsecond: ten thousand times smaller. So the two observers see the object pass in front of different stars. A ground-based prediction therefore needs its own search of the star catalogue along the Earth's track; it inherits the wider path uncertainty of Section 4, and, since observers must travel to the path and record for long enough, the timing uncertainty too. Together these make a ground-based occultation by a Roman TNO a harder prediction than one seen by Roman itself, which needs only the narrow path, but must then be lucky with its exposure cycle.
+
 ## 6. Summary
 
 * From part of a 70-day stare, Roman's milliarcsecond astrometry determines a TNO's semi-major axis to $\sigma_a/a \sim 10^{-3}$ in two to four weeks (for objects of about F146 = 24), and the full season to $\sim 10^{-5}$. Nearer objects need shorter arcs.
 * The resulting uncertainty is a long, thin cloud along Roman's line of sight. Roman sees it end on; observers on the Earth, 1.5 million km away and largely across the line of sight, see part of its length: an extra spread of about $B_\perp\,\sigma_\rho/\rho$, a few hundred km after two weeks, independent of the object's distance.
 * For occultation predictions, the path stays within a few hundred km for two months after a 28-day arc but degrades within a week or two after a 14-day one; timing uncertainties grow from seconds to minutes; and the five-month gap between seasons is the main obstacle for any arc short of the full season. Near the stationary points, which fall in the spring season because the bulge is observed near quadrature, the long axis of the uncertainty turns across the motion and the path uncertainty peaks.
+* For an occultation seen by Roman itself, only the path decides whether it happens, and Roman's narrow path uncertainty makes that prediction sharp; but the shadow passes in seconds to minutes, so Roman's fixed 12.1-minute cycle catches only about one event in ten, best near the stationary point where the shadow is slowest. From the ground the object follows a different track, about a minute of arc away, with a wider path uncertainty and a timing window to cover: a harder prediction.
 
 ## 7. Going further
 
